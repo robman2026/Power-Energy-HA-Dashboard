@@ -18,6 +18,12 @@ class ServerRackCard extends HTMLElement {
     return document.createElement('server-rack-card-editor');
   }
 
+  static getMetadata() {
+    return {
+      stability: 'stable',
+      config_panel: true
+    };
+  }
   static getStubConfig() {
     return {
       type: 'custom:server-rack-card',
