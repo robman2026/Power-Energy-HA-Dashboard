@@ -1,0 +1,12 @@
+{
+  "name": "Server Rack Card",
+  "content_in_root": false,
+  "filename": "server-rack-card.js",
+  "homeassistant": "2023.8.0",
+  "render_readme": true,
+  "domains": ["sensor", "binary_sensor"],
+  "documentation": "https://github.com/yourusername/server-rack-card",
+  "issues": "https://github.com/yourusername/server-rack-card/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

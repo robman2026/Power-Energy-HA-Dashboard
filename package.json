@@ -1,0 +1,32 @@
+{
+  "name": "server-rack-card",
+  "version": "1.0.0",
+  "description": "A beautiful, modern Home Assistant custom card for monitoring server rack power consumption with glassmorphic design",
+  "main": "server-rack-card.js",
+  "files": [
+    "server-rack-card.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"No tests configured yet\" && exit 0"
+  },
+  "keywords": [
+    "home-assistant",
+    "custom-card",
+    "power-monitoring",
+    "server-monitoring",
+    "dashboard",
+    "glassmorphism"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/server-rack-card.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/server-rack-card/issues"
+  },
+  "homepage": "https://github.com/yourusername/server-rack-card#readme"
+}
