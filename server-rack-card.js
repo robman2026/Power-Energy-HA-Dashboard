@@ -495,3 +495,13 @@ class ServerRackCard extends HTMLElement {
 }
 
 customElements.define('server-rack-card', ServerRackCard);
+
+customElements.define('server-rack-card-editor', class extends HTMLElement {
+  setConfig(config) {
+    this.config = config;
+  }
+
+  connectedCallback() {
+    this.innerHTML = `<div style="padding: 16px;"><p>Server Rack Card Editor</p></div>`;
+  }
+});
