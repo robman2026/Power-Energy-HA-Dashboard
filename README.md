@@ -1,6 +1,6 @@
-# Server Rack Card
+# Device Power Energy Card
 
-A beautiful, modern Home Assistant custom card for monitoring server rack power consumption and electrical metrics. Features a glassmorphic design with soft glow effects and real-time data visualization.
+A beautiful, modern Home Assistant custom card for monitoring device power consumption and electrical metrics. Features a glassmorphic design with soft glow effects and real-time data visualization.
 
 ![Preview](preview.html)
 
