@@ -1,3 +1,4 @@
+/* This is the code - Test */
 class ServerRackCard extends HTMLElement {
   setConfig(config) {
     this.config = config;
