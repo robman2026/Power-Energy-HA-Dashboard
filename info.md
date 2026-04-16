@@ -1,6 +1,6 @@
-# Server Rack Card
+# Power Energy Card
 
-Glassmorphism-style Lovelace card for monitoring server rack power metrics.
+Glassmorphism-style Lovelace card for monitoring the energy power metrics.
 
 ## Quick start
 
