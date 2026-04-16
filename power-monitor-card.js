@@ -31,9 +31,9 @@ const DEVICE_FIELDS_3P = [
   { key: 'power_c_entity',        label: 'Power Phase C (W)',       required: false },
   { key: 'flow_entity',           label: 'Flow / direction',        required: false },
   { key: 'energy_entity',         label: 'Total Energy (kWh)',      required: false },
-  { key: 'energy_a_entity',       label: 'Energy Phase A (kWh)',    required: false },
-  { key: 'energy_b_entity',       label: 'Energy Phase B (kWh)',    required: false },
-  { key: 'energy_c_entity',       label: 'Energy Phase C (kWh)',    required: false },
+  { key: 'energy_p_entity',       label: 'Energy Produced (kWh)',    required: false },
+  { key: 'energy_c_entity',       label: 'Energy Consumed (kWh)',    required: false },
+  { key: 'energy_t_entity',       label: 'Energy Total (kWh)',    required: false },
   { key: 'current_a_entity',      label: 'Current Phase A (A)',     required: false },
   { key: 'current_b_entity',      label: 'Current Phase B (A)',     required: false },
   { key: 'current_c_entity',      label: 'Current Phase C (A)',     required: false },
@@ -694,9 +694,9 @@ class PowerMonitorCard extends HTMLElement {
     // Energy
     const energy  = dev.energy_entity   ? this._val(dev.energy_entity)   : null;
     const energyU = this._unit(dev.energy_entity, 'kWh');
-    const enA  = dev.energy_a_entity    ? this._val(dev.energy_a_entity)  : null;
-    const enB  = dev.energy_b_entity    ? this._val(dev.energy_b_entity)  : null;
-    const enC  = dev.energy_c_entity    ? this._val(dev.energy_c_entity)  : null;
+    const enA  = dev.energy_p_entity    ? this._val(dev.energy_p_entity)  : null;
+    const enB  = dev.energy_c_entity    ? this._val(dev.energy_c_entity)  : null;
+    const enC  = dev.energy_t_entity    ? this._val(dev.energy_t_entity)  : null;
 
     // Current
     const curA = dev.current_a_entity   ? this._val(dev.current_a_entity) : null;
@@ -768,7 +768,7 @@ class PowerMonitorCard extends HTMLElement {
           ${phaseRow('Voltage', voltA, voltB, voltC, voltU,
             dev.voltage_a_entity, dev.voltage_b_entity, dev.voltage_c_entity)}
           ${phaseRow('Energy',  enA,   enB,   enC,  'kWh',
-            dev.energy_a_entity,  dev.energy_b_entity,  dev.energy_c_entity)}
+            dev.energy_p_entity,  dev.energy_c_entity,  dev.energy_t_entity)}
         </div>
         ${miscCount > 0 ? `
           <div class="stats cols-${miscCount}">
