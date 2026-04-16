@@ -1,4 +1,4 @@
-# 🖥️ Server Rack Card
+# 🖥️ Power Energy Card
 
 A glassmorphism-style custom Lovelace card for Home Assistant to monitor server rack power metrics in style.
 
@@ -19,13 +19,13 @@ A glassmorphism-style custom Lovelace card for Home Assistant to monitor server 
 
 ### HACS (recommended)
 1. Open HACS → Frontend → ⊕ Explore & Download
-2. Search for **Server Rack Card**
+2. Search for **Power Energy Card**
 3. Download and reload
 
 ### Manual
-1. Copy `server-rack-card.js` to `config/www/server-rack-card/server-rack-card.js`
+1. Copy `power-energy-card.js` to `config/www/power-energy-card/power-energy-card.js`
 2. In Home Assistant go to **Settings → Dashboards → ⋮ → Resources**
-3. Add resource: `/local/server-rack-card/server-rack-card.js` (type: JavaScript Module)
+3. Add resource: `/local/power-energy-card/power-energy-card.js` (type: JavaScript Module)
 4. Reload the browser
 
 ---
@@ -33,7 +33,7 @@ A glassmorphism-style custom Lovelace card for Home Assistant to monitor server 
 ## ⚙️ Configuration
 
 ```yaml
-type: custom:server-rack-card
+type: custom:power-energy-card
 title: Server Rack
 power_entity: sensor.consum_server_rack
 flow_entity: sensor.flow_server_rack
