@@ -1,7 +1,7 @@
 /**
  * Server Rack Card
  * Glassmorphism power monitoring card for Home Assistant Lovelace
- * https://github.com/your-username/server-rack-card
+ * https://github.com/robman2026/server-rack-card
  */
 
 class ServerRackCard extends HTMLElement {
@@ -298,6 +298,6 @@ if (!window.customCards.find(function(c) { return c.type === 'server-rack-card';
     name: 'Server Rack Card',
     description: 'Glassmorphism power monitoring card for server racks',
     preview: true,
-    documentationURL: 'https://github.com/your-username/server-rack-card',
+    documentationURL: 'https://github.com/robman2026/server-rack-card',
   });
 }
