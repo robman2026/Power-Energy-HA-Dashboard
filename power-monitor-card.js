@@ -8,7 +8,7 @@
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CARD_VERSION = '1.2.0';
+const CARD_VERSION = '1.3.0';
 const CARD_TAG     = 'power-monitor-card';
 const EDITOR_TAG   = 'power-monitor-card-editor';
 
@@ -41,7 +41,6 @@ const DEVICE_FIELDS_3P = [
   { key: 'voltage_b_entity',      label: 'Voltage Phase B (V)',     required: false },
   { key: 'voltage_c_entity',      label: 'Voltage Phase C (V)',     required: false },
   { key: 'power_factor_entity',   label: 'Power Factor (%)',        required: false },
-  { key: 'frequency_entity',      label: 'Frequency (Hz)',          required: false },
   { key: 'power_reactive_entity', label: 'Reactive Power (VAR)',    required: false },
 ];
 
@@ -387,21 +386,25 @@ class PowerMonitorCardEditor extends HTMLElement {
     this.shadowRoot.querySelector('#add-device').addEventListener('click', () => this._addDevice());
 
     // ── Inject ha-entity-picker for expanded devices ─────────────────────────
-    (this._config.devices || []).forEach((dev, i) => {
-      if (!this._expanded[i]) return;
-      const fields = (dev.phase_mode === '3') ? DEVICE_FIELDS_3P : DEVICE_FIELDS_1P;
-      fields.forEach(field => {
-        const slot = this.shadowRoot.querySelector(`#picker-${i}-${field.key}`);
-        if (!slot) return;
-        const picker = document.createElement('ha-entity-picker');
-        picker.hass              = this._hass;
-        picker.value             = dev[field.key] || '';
-        picker.label             = field.label + (field.required ? ' *' : '');
-        picker.allowCustomEntity = true;
-        picker.addEventListener('value-changed', e => {
-          this._updateDevice(i, field.key, e.detail.value);
+    // Use requestAnimationFrame so the shadow DOM has fully parsed before we
+    // query picker slot elements — fixes "entity pickers not showing" in HA.
+    requestAnimationFrame(() => {
+      (this._config.devices || []).forEach((dev, i) => {
+        if (!this._expanded[i]) return;
+        const fields = (dev.phase_mode === '3') ? DEVICE_FIELDS_3P : DEVICE_FIELDS_1P;
+        fields.forEach(field => {
+          const slot = this.shadowRoot.querySelector(`#picker-${i}-${field.key}`);
+          if (!slot || slot.children.length > 0) return; // skip if already injected
+          const picker = document.createElement('ha-entity-picker');
+          picker.hass              = this._hass;
+          picker.value             = dev[field.key] || '';
+          picker.label             = field.label + (field.required ? ' *' : '');
+          picker.allowCustomEntity = true;
+          picker.addEventListener('value-changed', e => {
+            this._updateDevice(i, field.key, e.detail.value);
+          });
+          slot.appendChild(picker);
         });
-        slot.appendChild(picker);
       });
     });
   }
@@ -506,6 +509,36 @@ class PowerMonitorCard extends HTMLElement {
     return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${lg} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
+  // Returns two colours [arcColor, glowColor] based on load percentage:
+  //   0–50%  → green  (#22c55e)
+  //  50–75%  → yellow (#eab308)  interpolated
+  //  75–100% → red    (#ef4444)  interpolated
+  _arcColors(pct) {
+    const p = Math.min(pct, 100);
+    let r, g, b;
+    if (p <= 50) {
+      // green only
+      r = 34; g = 197; b = 94;
+    } else if (p <= 75) {
+      // green → yellow  (0..1 within 50-75 range)
+      const t = (p - 50) / 25;
+      r = Math.round(34  + t * (234 - 34));   // 34→234
+      g = Math.round(197 + t * (179 - 197));  // 197→179
+      b = Math.round(94  + t * (8   - 94));   // 94→8
+    } else {
+      // yellow → red  (0..1 within 75-100 range)
+      const t = (p - 75) / 25;
+      r = Math.round(234 + t * (239 - 234));  // 234→239
+      g = Math.round(179 + t * (68  - 179));  // 179→68
+      b = Math.round(8   + t * (68  - 8));    // 8→68
+    }
+    const hex = (v) => v.toString(16).padStart(2, '0');
+    const color = `#${hex(r)}${hex(g)}${hex(b)}`;
+    const glow  = `rgba(${r},${g},${b},0.75)`;
+    const glowSoft = `rgba(${r},${g},${b},0.13)`;
+    return { color, glow, glowSoft };
+  }
+
   _moreInfo(id) {
     if (!id) return;
     this.dispatchEvent(new CustomEvent('hass-more-info', {
@@ -523,7 +556,7 @@ class PowerMonitorCard extends HTMLElement {
     const pct     = this._arcPct(dev);
     const trackD  = this._arcD(100, true);
     const arcD    = this._arcD(pct, false);
-    const gradId  = 'grad-' + (dev.power_entity || 'x').replace(/[\W]/g, '_');
+    const { color: arcColor, glow: arcGlow, glowSoft } = this._arcColors(pct);
 
     const energy  = this._val(dev.energy_entity);
     const energyU = this._unit(dev.energy_entity, 'kWh');
@@ -545,10 +578,14 @@ class PowerMonitorCard extends HTMLElement {
     const hasBottom  = hasVolt || hasFreq;
     const statCount  = [hasEnergy, hasCurrent, hasPF].filter(Boolean).length;
 
-    const bgStyle = dev.bg_color ? `background:${dev.bg_color} !important;` : '';
+    // bg_color: applied as a very subtle tint overlay so text stays readable.
+    // We inject a ::before pseudo via inline style variable instead of replacing the gradient.
+    const tileStyle = dev.bg_color
+      ? `--tile-tint:${dev.bg_color};`
+      : '';
 
     return `
-      <div class="tile" style="${bgStyle}">
+      <div class="tile" style="${tileStyle}">
         <div class="tile-header">
           <span class="tile-name">${dev.name || 'Device'}</span>
           <div class="status">
@@ -558,16 +595,13 @@ class PowerMonitorCard extends HTMLElement {
         </div>
         <div class="gauge-wrap" data-entity="${dev.power_entity}">
           <svg class="gauge-svg" viewBox="0 0 120 120">
-            <defs>
-              <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%"   stop-color="#818cf8"/>
-                <stop offset="100%" stop-color="#38bdf8"/>
-              </linearGradient>
-            </defs>
             <path class="g-track" d="${trackD}"/>
             ${arcD ? `
-              <path class="g-glow" d="${arcD}" stroke="url(#${gradId})"/>
-              <path class="g-arc"  d="${arcD}" stroke="url(#${gradId})"/>
+              <path class="g-glow" d="${arcD}"
+                stroke="${arcColor}" opacity="0.18" fill="none" stroke-width="12" stroke-linecap="round"/>
+              <path class="g-arc"  d="${arcD}"
+                stroke="${arcColor}" fill="none" stroke-width="5" stroke-linecap="round"
+                style="filter:drop-shadow(0 0 5px ${arcGlow})"/>
             ` : ''}
           </svg>
           <div class="gauge-center">
@@ -575,7 +609,7 @@ class PowerMonitorCard extends HTMLElement {
               <span class="g-num">${power}</span>
               <span class="g-unit">${powerU}</span>
             </div>
-            <div class="g-lbl">${flow}</div>
+            <div class="g-lbl" style="color:${arcColor}">${flow}</div>
           </div>
         </div>
         ${hasStats ? `
@@ -623,9 +657,9 @@ class PowerMonitorCard extends HTMLElement {
     const pct     = this._arcPct(dev);
     const trackD  = this._arcD(100, true);
     const arcD    = this._arcD(pct, false);
-    const gradId  = 'grad3-' + (dev.power_entity || 'x').replace(/[\W]/g, '_');
+    const { color: arcColor, glow: arcGlow } = this._arcColors(pct);
 
-    const bgStyle = dev.bg_color ? `background:${dev.bg_color} !important;` : '';
+    const tileStyle = dev.bg_color ? `--tile-tint:${dev.bg_color};` : '';
 
     // Per-phase power
     const pwrA = dev.power_a_entity ? this._val(dev.power_a_entity) : null;
@@ -652,11 +686,9 @@ class PowerMonitorCard extends HTMLElement {
     const voltC = dev.voltage_c_entity  ? this._val(dev.voltage_c_entity) : null;
     const voltU = this._unit(dev.voltage_a_entity, 'V');
 
-    // Misc
+    // Misc (no frequency for 3-phase)
     const pf     = dev.power_factor_entity   ? this._val(dev.power_factor_entity)   : null;
     const pfU    = this._unit(dev.power_factor_entity, '%');
-    const freq   = dev.frequency_entity      ? this._val(dev.frequency_entity)      : null;
-    const freqU  = this._unit(dev.frequency_entity, 'Hz');
     const react  = dev.power_reactive_entity ? this._val(dev.power_reactive_entity) : null;
     const reactU = this._unit(dev.power_reactive_entity, 'VAR');
 
@@ -674,10 +706,10 @@ class PowerMonitorCard extends HTMLElement {
         </div>`;
     };
 
-    const miscCount = [energy, pf, freq || react].filter(Boolean).length;
+    const miscCount = [energy, pf, react].filter(Boolean).length;
 
     return `
-      <div class="tile tile-3p" style="${bgStyle}">
+      <div class="tile tile-3p" style="${tileStyle}">
         <div class="tile-header">
           <span class="tile-name">${dev.name || 'Device'}</span>
           <div class="status">
@@ -687,17 +719,13 @@ class PowerMonitorCard extends HTMLElement {
         </div>
         <div class="gauge-wrap" data-entity="${dev.power_entity}">
           <svg class="gauge-svg" viewBox="0 0 120 120">
-            <defs>
-              <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%"   stop-color="#f59e0b"/>
-                <stop offset="50%"  stop-color="#818cf8"/>
-                <stop offset="100%" stop-color="#38bdf8"/>
-              </linearGradient>
-            </defs>
             <path class="g-track" d="${trackD}"/>
             ${arcD ? `
-              <path class="g-glow" d="${arcD}" stroke="url(#${gradId})"/>
-              <path class="g-arc"  d="${arcD}" stroke="url(#${gradId})"/>
+              <path class="g-glow" d="${arcD}"
+                stroke="${arcColor}" opacity="0.18" fill="none" stroke-width="12" stroke-linecap="round"/>
+              <path class="g-arc"  d="${arcD}"
+                stroke="${arcColor}" fill="none" stroke-width="5" stroke-linecap="round"
+                style="filter:drop-shadow(0 0 5px ${arcGlow})"/>
             ` : ''}
           </svg>
           <div class="gauge-center">
@@ -705,7 +733,7 @@ class PowerMonitorCard extends HTMLElement {
               <span class="g-num">${power}</span>
               <span class="g-unit">${powerU}</span>
             </div>
-            <div class="g-lbl" style="color:rgba(251,191,36,0.9)">${flow}</div>
+            <div class="g-lbl" style="color:${arcColor}">${flow}</div>
           </div>
         </div>
         <div class="phase-table">
@@ -726,10 +754,7 @@ class PowerMonitorCard extends HTMLElement {
             ${pf ? `<div class="stat" data-entity="${dev.power_factor_entity}">
               <span class="s-val">${pf}</span><span class="s-unit">${pfU}</span>
               <span class="s-lbl">PF</span></div>` : ''}
-            ${freq ? `<div class="stat" data-entity="${dev.frequency_entity}">
-              <span class="s-val">${freq}</span><span class="s-unit"> ${freqU}</span>
-              <span class="s-lbl">Freq</span></div>`
-            : react ? `<div class="stat" data-entity="${dev.power_reactive_entity}">
+            ${react ? `<div class="stat" data-entity="${dev.power_reactive_entity}">
               <span class="s-val">${react}</span><span class="s-unit"> ${reactU}</span>
               <span class="s-lbl">Reactive</span></div>` : ''}
           </div>
@@ -795,15 +820,18 @@ class PowerMonitorCard extends HTMLElement {
                       inset 0 1px 0 rgba(255,255,255,0.04);
           touch-action: pan-y;
         }
+        /* Decorative radial highlight (top-right) */
         .tile::before {
           content:''; position:absolute; top:-50px; right:-50px; pointer-events:none;
-          width:160px; height:160px;
+          width:160px; height:160px; z-index:0;
           background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
         }
+        /* Colour tint overlay — activated via --tile-tint CSS variable */
         .tile::after {
-          content:''; position:absolute; bottom:-30px; left:-30px; pointer-events:none;
-          width:120px; height:120px;
-          background: radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%);
+          content:''; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:16px;
+          background: var(--tile-tint, transparent);
+          opacity: 0.18;   /* subtle: colour bleeds through without killing text readability */
+          mix-blend-mode: color;
         }
 
         @media (max-width: 520px) {
@@ -824,7 +852,7 @@ class PowerMonitorCard extends HTMLElement {
         /* ── Tile header ── */
         .tile-header {
           display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 12px; position: relative; z-index: 1;
         }
         .tile-name {
           font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 600;
@@ -838,7 +866,7 @@ class PowerMonitorCard extends HTMLElement {
 
         /* ── Gauge ── */
         .gauge-wrap {
-          display:flex; justify-content:center; position:relative;
+          display:flex; justify-content:center; position:relative; z-index:1;
           margin-bottom:12px; cursor:pointer;
         }
         .gauge-svg { width:120px; height:120px; filter:drop-shadow(0 0 8px rgba(96,165,250,0.2)); }
@@ -855,7 +883,7 @@ class PowerMonitorCard extends HTMLElement {
         .g-lbl  { font-size:10px; color:rgba(96,165,250,0.85); letter-spacing:1px; text-transform:uppercase; margin-top:3px; }
 
         /* ── Stats ── */
-        .stats { display:grid; gap:7px; margin-bottom:7px; }
+        .stats { display:grid; gap:7px; margin-bottom:7px; position:relative; z-index:1; }
         .stats.cols-1 { grid-template-columns:1fr; }
         .stats.cols-2 { grid-template-columns:repeat(2,1fr); }
         .stats.cols-3 { grid-template-columns:repeat(3,1fr); }
@@ -874,6 +902,7 @@ class PowerMonitorCard extends HTMLElement {
         .bottom {
           background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.05);
           border-radius:9px; padding:8px 12px; display:flex; justify-content:space-around;
+          position:relative; z-index:1;
         }
         .b-item { display:flex; align-items:center; gap:6px; cursor:pointer; transition:opacity .2s; }
         .b-item:hover { opacity:.7; }
