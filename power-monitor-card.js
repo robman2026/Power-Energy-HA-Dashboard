@@ -726,7 +726,7 @@ class PowerMonitorCard extends HTMLElement {
       return `
         <div class="phase-row">
           <span class="ph-label">${label}</span>
-          ${cell(vA, eA, 'A')}${cell(vB, eB, 'B')}${cell(vC, eC, 'C')}
+          ${cell(vA, eA, 'Phase-A')}${cell(vB, eB, 'Phase-B')}${cell(vC, eC, 'Phase-C')}
         </div>`;
     };
 
