@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Rack Card – Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #060d1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px;
+      font-family: 'Exo 2', sans-serif;
+      color: #e2e8f0;
+    }
+
+    /* Page header */
+    .page-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .page-badge {
+      display: inline-block;
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      color: #60a5fa;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    .page-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #60a5fa, #818cf8, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .page-sub {
+      font-size: 13px;
+      color: rgba(100, 116, 139, 0.9);
+      letter-spacing: 0.5px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .ctrl-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(100, 116, 139, 0.7);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .ctrl-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 140px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #60a5fa;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(96,165,250,0.6);
+    }
+
+    .power-display {
+      font-size: 12px;
+      color: #60a5fa;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* Card wrapper */
+    .card-demo {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    /* --- CARD STYLES --- */
+    .card {
+      background: linear-gradient(145deg, #0d1b2e 0%, #0a1628 50%, #0d1f3c 100%);
+      border-radius: 20px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(66, 153, 225, 0.15);
+      box-shadow:
+        0 0 40px rgba(66, 153, 225, 0.05),
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: -40px;
+      width: 150px; height: 150px;
+      background: radial-gradient(circle, rgba(56,189,248,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 400;
+      color: rgba(148, 163, 184, 0.7);
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e, 0 0 16px rgba(34,197,94,0.4);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px #22c55e, 0 0 16px rgba(34,197,94,0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 4px #22c55e, 0 0 8px rgba(34,197,94,0.2); }
+    }
+
+    /* Gauge */
+    .gauge-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .gauge-svg {
+      width: 180px; height: 180px;
+      filter: drop-shadow(0 0 12px rgba(96,165,250,0.25));
+    }
+
+    .gauge-track {
+      fill: none;
+      stroke: rgba(255,255,255,0.05);
+      stroke-width: 6;
+      stroke-linecap: round;
+    }
+
+    .gauge-glow {
+      fill: none;
+      stroke: url(#arcGradient);
+      stroke-width: 14;
+      stroke-linecap: round;
+      opacity: 0.15;
+      transition: d 0.6s ease;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: url(#arcGradient);
+      stroke-width: 6;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 6px rgba(96,165,250,0.8));
+      transition: d 0.6s ease;
+    }
+
+    .gauge-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .gauge-icon { font-size: 16px; line-height: 1; margin-bottom: 2px; filter: drop-shadow(0 0 6px rgba(96,165,250,0.8)); }
+
+    .gauge-value { display: flex; align-items: baseline; justify-content: center; gap: 2px; line-height: 1; }
+
+    .gauge-number {
+      font-size: 36px; font-weight: 700; color: #fff;
+      letter-spacing: -1px;
+      text-shadow: 0 0 20px rgba(96,165,250,0.5);
+      transition: all 0.3s;
+    }
+
+    .gauge-unit { font-size: 14px; font-weight: 300; color: rgba(148,163,184,0.8); margin-bottom: 4px; }
+    .gauge-label { font-size: 11px; color: rgba(96,165,250,0.9); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 400; margin-top: 4px; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 12px 10px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+
+    .stat-card:hover {
+      background: rgba(96,165,250,0.08);
+      border-color: rgba(96,165,250,0.2);
+      transform: translateY(-1px);
+    }
+
+    .stat-icon { font-size: 14px; margin-bottom: 6px; display: block; opacity: 0.8; }
+    .stat-value { font-size: 18px; font-weight: 700; color: #f1f5f9; line-height: 1; margin-bottom: 2px; }
+    .stat-unit { font-size: 10px; font-weight: 400; color: rgba(148,163,184,0.6); }
+    .stat-label { font-size: 10px; color: rgba(100,116,139,0.9); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
+
+    /* Bottom row */
+    .bottom-row {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 10px;
+    }
+
+    .bottom-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .bottom-item:hover { opacity: 0.7; }
+
+    .wave-icon { font-size: 18px; opacity: 0.7; }
+
+    .bottom-value { font-size: 17px; font-weight: 600; color: #e2e8f0; }
+    .bottom-unit { font-size: 10px; font-weight: 300; color: rgba(148,163,184,0.6); display: block; }
+    .bottom-label { font-size: 10px; color: rgba(100,116,139,0.8); text-transform: uppercase; letter-spacing: 0.8px; }
+
+    .bottom-divider { width: 1px; background: rgba(255,255,255,0.07); align-self: stretch; }
+
+    /* Details btn */
+    .details-btn {
+      width: 100%;
+      padding: 12px;
+      background: rgba(96,165,250,0.08);
+      border: 1px solid rgba(96,165,250,0.2);
+      border-radius: 12px;
+      color: rgba(148,163,184,0.9);
+      font-family: 'Exo 2', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .details-btn:hover {
+      background: rgba(96,165,250,0.15);
+      border-color: rgba(96,165,250,0.4);
+      color: #fff;
+    }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 40px;
+      font-size: 11px;
+      color: rgba(100,116,139,0.5);
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-badge">Custom Lovelace Card</div>
+    <div class="page-title">Server Rack Card</div>
+    <div class="page-sub">Glassmorphism power monitoring for Home Assistant</div>
+  </div>
+
+  <!-- Live demo controls -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Power (W)</span>
+      <input type="range" id="powerSlider" min="0" max="500" value="95" oninput="updateCard()">
+      <div class="power-display" id="powerDisplay">95 W</div>
+    </div>
+  </div>
+
+  <div class="card-demo">
+    <div class="card">
+
+      <div class="header">
+        <span class="title">Server Rack</span>
+        <div class="status">
+          <div class="status-dot"></div>
+          <span>Online</span>
+        </div>
+      </div>
+
+      <div class="gauge-wrapper">
+        <svg class="gauge-svg" viewBox="0 0 180 180">
+          <defs>
+            <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#818cf8"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <path class="gauge-track" id="trackPath"/>
+          <path class="gauge-glow" id="glowPath"/>
+          <path class="gauge-fill" id="fillPath"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-icon">⚡</div>
+          <div class="gauge-value">
+            <span class="gauge-number" id="powerVal">95</span>
+            <span class="gauge-unit">W</span>
+          </div>
+          <div class="gauge-label" id="flowLabel">Consuming</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-icon">⚡</span>
+          <div class="stat-value">38.01<span class="stat-unit"> kWh</span></div>
+          <div class="stat-label">Energy</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">〜</span>
+          <div class="stat-value">0.62<span class="stat-unit"> A</span></div>
+          <div class="stat-label">Current</div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">◎</span>
+          <div class="stat-value">64<span class="stat-unit">%</span></div>
+          <div class="stat-label">Power Factor</div>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="bottom-item">
+          <span class="wave-icon">∿</span>
+          <div>
+            <span class="bottom-value">239 <span class="bottom-unit">V</span></span>
+            <span class="bottom-label">Voltage</span>
+          </div>
+        </div>
+        <div class="bottom-divider"></div>
+        <div class="bottom-item">
+          <span class="wave-icon">∿</span>
+          <div>
+            <span class="bottom-value">49 <span class="bottom-unit">Hz</span></span>
+            <span class="bottom-label">Frequency</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="details-btn">ℹ️ &nbsp;Details</button>
+
+    </div>
+  </div>
+
+  <div class="page-footer">server-rack-card &nbsp;·&nbsp; Home Assistant Lovelace Custom Card</div>
+
+  <script>
+    function getArcPath(percent, maxDeg = 260) {
+      const r = 70, cx = 90, cy = 90;
+      const startAngle = -220;
+      const endAngle = startAngle + (maxDeg * Math.min(percent, 100) / 100);
+      const toRad = deg => (deg * Math.PI) / 180;
+      const x1 = cx + r * Math.cos(toRad(startAngle));
+      const y1 = cy + r * Math.sin(toRad(startAngle));
+      const x2 = cx + r * Math.cos(toRad(endAngle));
+      const y2 = cy + r * Math.sin(toRad(endAngle));
+      const largeArc = (maxDeg * percent / 100) > 180 ? 1 : 0;
+      if (percent <= 0) return '';
+      return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+    }
+
+    function getTrackPath() {
+      const r = 70, cx = 90, cy = 90;
+      const startAngle = -220;
+      const totalDeg = 260;
+      const endAngle = startAngle + totalDeg;
+      const toRad = deg => (deg * Math.PI) / 180;
+      const x1 = cx + r * Math.cos(toRad(startAngle));
+      const y1 = cy + r * Math.sin(toRad(startAngle));
+      const x2 = cx + r * Math.cos(toRad(endAngle));
+      const y2 = cy + r * Math.sin(toRad(endAngle));
+      return `M ${x1} ${y1} A ${r} ${r} 0 1 1 ${x2} ${y2}`;
+    }
+
+    const MAX_POWER = 500;
+
+    function updateCard() {
+      const power = parseInt(document.getElementById('powerSlider').value);
+      const percent = (power / MAX_POWER) * 100;
+      const arcPath = getArcPath(percent);
+
+      document.getElementById('trackPath').setAttribute('d', getTrackPath());
+      document.getElementById('fillPath').setAttribute('d', arcPath);
+      document.getElementById('glowPath').setAttribute('d', arcPath);
+      document.getElementById('powerVal').textContent = power;
+      document.getElementById('powerDisplay').textContent = power + ' W';
+      document.getElementById('flowLabel').textContent = power > 0 ? 'Consuming' : 'Standby';
+    }
+
+    // Init
+    updateCard();
+  </script>
+</body>
+</html>

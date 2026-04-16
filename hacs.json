@@ -1,0 +1,7 @@
+{
+  "name": "Server Rack Card",
+  "render_readme": true,
+  "filename": "server-rack-card.js",
+  "homeassistant": "2021.6.0",
+  "hacs": "1.6.0"
+}
