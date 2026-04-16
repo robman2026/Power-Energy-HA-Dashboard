@@ -3,7 +3,7 @@
  * Multi-device, responsive, glassmorphism Lovelace custom card for Home Assistant.
  * Supports a visual editor and any number of monitored circuits/devices.
  *
- * https://github.com/your-username/power-monitor-card
+ * https://github.com/robman2026/power-monitor-card
  */
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -519,7 +519,7 @@ class PowerMonitorCard extends HTMLElement {
     if (!this._config || !this._hass) return;
     const cfg     = this._config;
     const devices = cfg.devices || [];
-    const cols    = cfg.columns ? `repeat(${cfg.columns}, 1fr)` : 'repeat(auto-fill, minmax(260px, 1fr))';
+    const cols    = cfg.columns ? `repeat(${cfg.columns}, minmax(0, 1fr))` : 'repeat(auto-fill, minmax(240px, 1fr))';
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -547,6 +547,16 @@ class PowerMonitorCard extends HTMLElement {
           display: grid;
           grid-template-columns: ${cols};
           gap: 14px;
+          container-type: inline-size;
+          container-name: power-grid;
+        }
+
+        /* Responsive overrides — collapse to 2 cols below ~520px, 1 col below ~340px */
+        @media (max-width: 520px) {
+          .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; }
+        }
+        @media (max-width: 340px) {
+          .grid { grid-template-columns: 1fr !important; gap: 8px; }
         }
 
         /* Device tile */
@@ -561,6 +571,22 @@ class PowerMonitorCard extends HTMLElement {
             0 0 30px rgba(66,153,225,0.04),
             0 12px 40px rgba(0,0,0,0.45),
             inset 0 1px 0 rgba(255,255,255,0.04);
+          min-width: 0; /* prevent tile overflow in narrow grid cells */
+        }
+
+        /* Narrow tile adjustments (when tile is squeezed) */
+        @media (max-width: 520px) {
+          .tile { padding: 10px 8px; border-radius: 12px; }
+          .tile-name { font-size: 10px; letter-spacing: 1px; }
+          .gauge-svg { width: 90px; height: 90px; }
+          .g-num { font-size: 20px; }
+          .g-lbl { font-size: 9px; }
+          .s-val { font-size: 12px; }
+          .s-lbl, .s-unit { font-size: 8px; }
+          .b-val { font-size: 12px; }
+          .b-lbl, .b-unit { font-size: 8px; }
+          .stat { padding: 6px 4px; }
+          .bottom { padding: 6px 8px; }
         }
         .tile::before {
           content:''; position:absolute; top:-50px; right:-50px;
@@ -670,7 +696,7 @@ if (!window.customCards.find(function(c) { return c.type === CARD_TAG; })) {
     name: 'Power Monitor Card',
     description: 'Multi-device responsive power monitoring dashboard card',
     preview: true,
-    documentationURL: 'https://github.com/your-username/power-monitor-card',
+    documentationURL: 'https://github.com/robman2026/power-monitor-card',
   });
 }
 
