@@ -1,20 +1,29 @@
-# Power Energy Card
+# Power Monitor Card
 
-Glassmorphism-style Lovelace card for monitoring the energy power metrics.
+Responsive, multi-device glassmorphism card for monitoring power circuits.
+
+**Features:** multiple devices · visual editor · responsive grid · arc gauge · online status
 
 ## Quick start
 
 ```yaml
-type: custom:server-rack-card
-title: Server Rack
-power_entity: sensor.consum_server_rack
-flow_entity: sensor.flow_server_rack
-energy_entity: sensor.total_server_rack
-current_entity: sensor.amperaj_server_rack
-power_factor_entity: sensor.factor_server_rack
-voltage_entity: sensor.voltaj
-frequency_entity: sensor.frecventa
-max_power: 500
+type: custom:power-monitor-card
+columns: 3
+devices:
+  - name: Laundry
+    power_entity:        sensor.consum_laundry
+    energy_entity:       sensor.total_laundry
+    current_entity:      sensor.amperaj_laundry
+    power_factor_entity: sensor.factor_laundry
+    voltage_entity:      sensor.voltaj
+    frequency_entity:    sensor.frecventa
+
+  - name: Kitchen, WC
+    power_entity:        sensor.consum_kitchen_wc
+    energy_entity:       sensor.total_kitchen_wc
+    current_entity:      sensor.amperaj_kitchen_wc
+    voltage_entity:      sensor.voltaj
+    frequency_entity:    sensor.frecventa
 ```
 
-See the [README](README.md) for the full configuration reference.
+See the [README](README.md) for all configuration options.

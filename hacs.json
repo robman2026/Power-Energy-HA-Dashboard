@@ -1,7 +1,7 @@
 {
-  "name": "Power Energy Card",
+  "name": "Power Monitor Card",
   "render_readme": true,
-  "filename": "power-energy-card.js",
+  "filename": "power-monitor-card.js",
   "homeassistant": "2021.6.0",
   "hacs": "1.6.0"
 }

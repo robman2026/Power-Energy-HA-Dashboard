@@ -3,477 +3,304 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Server Rack Card – Preview</title>
+  <title>Power Monitor Card – Preview</title>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       background: #060d1a;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 40px 20px;
+      padding: 32px 20px 48px;
       font-family: 'Exo 2', sans-serif;
       color: #e2e8f0;
     }
 
-    /* Page header */
-    .page-header {
-      text-align: center;
-      margin-bottom: 40px;
+    /* Page chrome */
+    .page-header { text-align: center; margin-bottom: 32px; }
+    .badge {
+      display: inline-block; background: rgba(96,165,250,0.1);
+      border: 1px solid rgba(96,165,250,0.25); color: #60a5fa;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px; margin-bottom: 12px;
     }
-
-    .page-badge {
-      display: inline-block;
-      background: rgba(96, 165, 250, 0.1);
-      border: 1px solid rgba(96, 165, 250, 0.25);
-      color: #60a5fa;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border-radius: 20px;
-      margin-bottom: 16px;
-    }
-
     .page-title {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 32px;
-      font-weight: 600;
-      letter-spacing: 2px;
+      font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 600; letter-spacing: 2px;
       background: linear-gradient(135deg, #60a5fa, #818cf8, #38bdf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
-    }
-
-    .page-sub {
-      font-size: 13px;
-      color: rgba(100, 116, 139, 0.9);
-      letter-spacing: 0.5px;
-    }
-
-    /* Controls */
-    .controls {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 32px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .ctrl-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: rgba(100, 116, 139, 0.7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
       margin-bottom: 6px;
-      display: block;
+    }
+    .page-sub { font-size: 12px; color: rgba(100,116,139,0.8); }
+
+    /* Controls bar */
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
+      margin-bottom: 28px;
+    }
+    .ctrl { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .ctrl label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(100,116,139,0.8); }
+    .ctrl input[type="range"] {
+      -webkit-appearance: none; width: 120px; height: 3px;
+      border-radius: 2px; background: rgba(255,255,255,0.1); outline: none;
+    }
+    .ctrl input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+      background: #60a5fa; cursor: pointer; box-shadow: 0 0 6px rgba(96,165,250,0.6);
+    }
+    .ctrl select {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: #e2e8f0; padding: 4px 8px; border-radius: 6px; font-size: 12px;
+    }
+    .val-badge { font-size: 11px; color: #60a5fa; }
+
+    /* Card area */
+    .card-title {
+      font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600;
+      letter-spacing: 2.5px; text-transform: uppercase; color: rgba(148,163,184,0.65);
+      padding: 0 2px 14px;
     }
 
-    .ctrl-group {
-      display: flex;
-      flex-direction: column;
+    /* Responsive grid – mirrors the HA card */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      transition: grid-template-columns .3s;
+    }
+    .grid.cols-1 { grid-template-columns: 1fr; }
+    .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+    /* Device tile */
+    .tile {
+      background: linear-gradient(145deg, #0d1b2e 0%, #0a1628 55%, #0e2040 100%);
+      border-radius: 16px; padding: 16px; position: relative; overflow: hidden;
+      border: 1px solid rgba(66,153,225,0.13);
+      box-shadow: 0 0 30px rgba(66,153,225,0.04), 0 12px 40px rgba(0,0,0,0.45),
+                  inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .tile::before {
+      content:''; position:absolute; top:-50px; right:-50px;
+      width:160px; height:160px; pointer-events:none;
+      background:radial-gradient(circle,rgba(99,102,241,0.1) 0%,transparent 70%);
+    }
+    .tile::after {
+      content:''; position:absolute; bottom:-30px; left:-30px;
+      width:120px; height:120px; pointer-events:none;
+      background:radial-gradient(circle,rgba(56,189,248,0.06) 0%,transparent 70%);
     }
 
-    input[type="range"] {
-      -webkit-appearance: none;
-      width: 140px;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.1);
-      outline: none;
+    .tile-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .tile-name {
+      font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:600;
+      letter-spacing:2px; text-transform:uppercase; color:rgba(148,163,184,0.8);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;
     }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #60a5fa;
-      cursor: pointer;
-      box-shadow: 0 0 8px rgba(96,165,250,0.6);
-    }
-
-    .power-display {
-      font-size: 12px;
-      color: #60a5fa;
-      text-align: center;
-      margin-top: 4px;
-    }
-
-    /* Card wrapper */
-    .card-demo {
-      width: 100%;
-      max-width: 360px;
-    }
-
-    /* --- CARD STYLES --- */
-    .card {
-      background: linear-gradient(145deg, #0d1b2e 0%, #0a1628 50%, #0d1f3c 100%);
-      border-radius: 20px;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-      border: 1px solid rgba(66, 153, 225, 0.15);
-      box-shadow:
-        0 0 40px rgba(66, 153, 225, 0.05),
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 200px; height: 200px;
-      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .card::after {
-      content: '';
-      position: absolute;
-      bottom: -40px; left: -40px;
-      width: 150px; height: 150px;
-      background: radial-gradient(circle, rgba(56,189,248,0.07) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .title {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: rgba(148, 163, 184, 0.8);
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 400;
-      color: rgba(148, 163, 184, 0.7);
-    }
-
-    .status-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e, 0 0 16px rgba(34,197,94,0.4);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; box-shadow: 0 0 8px #22c55e, 0 0 16px rgba(34,197,94,0.4); }
-      50% { opacity: 0.7; box-shadow: 0 0 4px #22c55e, 0 0 8px rgba(34,197,94,0.2); }
-    }
+    .status { display:flex; align-items:center; gap:5px; font-size:11px; color:rgba(148,163,184,0.6); }
+    .dot    { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 6px #22c55e; animation:blink 2s ease-in-out infinite; }
+    .dot.off{ background:#ef4444; box-shadow:0 0 6px #ef4444; animation:none; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.55} }
 
     /* Gauge */
-    .gauge-wrapper {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .gauge-svg {
-      width: 180px; height: 180px;
-      filter: drop-shadow(0 0 12px rgba(96,165,250,0.25));
-    }
-
-    .gauge-track {
-      fill: none;
-      stroke: rgba(255,255,255,0.05);
-      stroke-width: 6;
-      stroke-linecap: round;
-    }
-
-    .gauge-glow {
-      fill: none;
-      stroke: url(#arcGradient);
-      stroke-width: 14;
-      stroke-linecap: round;
-      opacity: 0.15;
-      transition: d 0.6s ease;
-    }
-
-    .gauge-fill {
-      fill: none;
-      stroke: url(#arcGradient);
-      stroke-width: 6;
-      stroke-linecap: round;
-      filter: drop-shadow(0 0 6px rgba(96,165,250,0.8));
-      transition: d 0.6s ease;
-    }
-
-    .gauge-center {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      pointer-events: none;
-    }
-
-    .gauge-icon { font-size: 16px; line-height: 1; margin-bottom: 2px; filter: drop-shadow(0 0 6px rgba(96,165,250,0.8)); }
-
-    .gauge-value { display: flex; align-items: baseline; justify-content: center; gap: 2px; line-height: 1; }
-
-    .gauge-number {
-      font-size: 36px; font-weight: 700; color: #fff;
-      letter-spacing: -1px;
-      text-shadow: 0 0 20px rgba(96,165,250,0.5);
-      transition: all 0.3s;
-    }
-
-    .gauge-unit { font-size: 14px; font-weight: 300; color: rgba(148,163,184,0.8); margin-bottom: 4px; }
-    .gauge-label { font-size: 11px; color: rgba(96,165,250,0.9); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 400; margin-top: 4px; }
+    .gauge-wrap { display:flex; justify-content:center; position:relative; margin-bottom:12px; cursor:pointer; }
+    .gauge-svg  { width:120px; height:120px; filter:drop-shadow(0 0 8px rgba(96,165,250,0.2)); }
+    .g-track { fill:none; stroke:rgba(255,255,255,0.05); stroke-width:5; stroke-linecap:round; }
+    .g-glow  { fill:none; stroke-width:12; stroke-linecap:round; opacity:.13; }
+    .g-arc   { fill:none; stroke-width:5;  stroke-linecap:round; filter:drop-shadow(0 0 5px rgba(96,165,250,0.75)); }
+    .gauge-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
+    .g-row  { display:flex; align-items:baseline; justify-content:center; gap:1px; line-height:1; }
+    .g-num  { font-size:26px; font-weight:700; color:#fff; letter-spacing:-1px; text-shadow:0 0 16px rgba(96,165,250,0.5); transition:all .3s; }
+    .g-unit { font-size:11px; font-weight:300; color:rgba(148,163,184,0.7); margin-bottom:2px; }
+    .g-lbl  { font-size:10px; color:rgba(96,165,250,0.85); letter-spacing:1px; text-transform:uppercase; margin-top:3px; }
 
     /* Stats */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 10px;
+    .stats       { display:grid; gap:7px; margin-bottom:7px; }
+    .stats.cols-3{ grid-template-columns:repeat(3,1fr); }
+    .stats.cols-2{ grid-template-columns:repeat(2,1fr); }
+    .stats.cols-1{ grid-template-columns:1fr; }
+    .stat {
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
+      border-radius:9px; padding:8px 6px; text-align:center;
+      cursor:pointer; transition:background .2s, border-color .2s, transform .15s;
+      display:flex; flex-direction:column; align-items:center;
     }
+    .stat:hover { background:rgba(96,165,250,0.08); border-color:rgba(96,165,250,0.2); transform:translateY(-1px); }
+    .s-val  { font-size:15px; font-weight:700; color:#f1f5f9; line-height:1; }
+    .s-unit { font-size:9px;  font-weight:400; color:rgba(148,163,184,0.55); }
+    .s-lbl  { font-size:9px;  color:rgba(100,116,139,0.85); text-transform:uppercase; letter-spacing:.6px; margin-top:3px; }
 
-    .stat-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
-      padding: 12px 10px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s, transform 0.15s;
-    }
+    /* Bottom */
+    .bottom { background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.05); border-radius:9px; padding:8px 12px; display:flex; justify-content:space-around; }
+    .b-item { display:flex; align-items:center; gap:6px; cursor:pointer; transition:opacity .2s; }
+    .b-item:hover { opacity:.7; }
+    .b-wave { font-size:15px; opacity:.7; }
+    .b-val  { font-size:14px; font-weight:600; color:#e2e8f0; line-height:1.1; }
+    .b-unit { font-size:9px;  font-weight:300; color:rgba(148,163,184,0.55); }
+    .b-lbl  { font-size:9px;  color:rgba(100,116,139,0.8); text-transform:uppercase; letter-spacing:.6px; }
+    .b-div  { width:1px; background:rgba(255,255,255,0.06); align-self:stretch; }
 
-    .stat-card:hover {
-      background: rgba(96,165,250,0.08);
-      border-color: rgba(96,165,250,0.2);
-      transform: translateY(-1px);
-    }
-
-    .stat-icon { font-size: 14px; margin-bottom: 6px; display: block; opacity: 0.8; }
-    .stat-value { font-size: 18px; font-weight: 700; color: #f1f5f9; line-height: 1; margin-bottom: 2px; }
-    .stat-unit { font-size: 10px; font-weight: 400; color: rgba(148,163,184,0.6); }
-    .stat-label { font-size: 10px; color: rgba(100,116,139,0.9); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
-
-    /* Bottom row */
-    .bottom-row {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 10px;
-    }
-
-    .bottom-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .bottom-item:hover { opacity: 0.7; }
-
-    .wave-icon { font-size: 18px; opacity: 0.7; }
-
-    .bottom-value { font-size: 17px; font-weight: 600; color: #e2e8f0; }
-    .bottom-unit { font-size: 10px; font-weight: 300; color: rgba(148,163,184,0.6); display: block; }
-    .bottom-label { font-size: 10px; color: rgba(100,116,139,0.8); text-transform: uppercase; letter-spacing: 0.8px; }
-
-    .bottom-divider { width: 1px; background: rgba(255,255,255,0.07); align-self: stretch; }
-
-    /* Details btn */
-    .details-btn {
-      width: 100%;
-      padding: 12px;
-      background: rgba(96,165,250,0.08);
-      border: 1px solid rgba(96,165,250,0.2);
-      border-radius: 12px;
-      color: rgba(148,163,184,0.9);
-      font-family: 'Exo 2', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .details-btn:hover {
-      background: rgba(96,165,250,0.15);
-      border-color: rgba(96,165,250,0.4);
-      color: #fff;
-    }
-
-    /* Footer */
-    .page-footer {
-      margin-top: 40px;
-      font-size: 11px;
-      color: rgba(100,116,139,0.5);
-      text-align: center;
-      letter-spacing: 0.5px;
-    }
+    footer { text-align:center; margin-top:40px; font-size:11px; color:rgba(100,116,139,0.4); }
   </style>
 </head>
 <body>
 
-  <div class="page-header">
-    <div class="page-badge">Custom Lovelace Card</div>
-    <div class="page-title">Server Rack Card</div>
-    <div class="page-sub">Glassmorphism power monitoring for Home Assistant</div>
+<div class="page-header">
+  <div class="badge">Home Assistant · Custom Lovelace Card</div>
+  <div class="page-title">Power Monitor Card</div>
+  <div class="page-sub">Multi-device responsive power monitoring dashboard</div>
+</div>
+
+<div class="controls">
+  <div class="ctrl">
+    <label>Columns</label>
+    <select id="colSel" onchange="setColumns(this.value)">
+      <option value="">Auto</option>
+      <option value="cols-1">1</option>
+      <option value="cols-2">2</option>
+      <option value="cols-3" selected>3</option>
+      <option value="cols-4">4</option>
+    </select>
   </div>
-
-  <!-- Live demo controls -->
-  <div class="controls">
-    <div class="ctrl-group">
-      <span class="ctrl-label">Power (W)</span>
-      <input type="range" id="powerSlider" min="0" max="500" value="95" oninput="updateCard()">
-      <div class="power-display" id="powerDisplay">95 W</div>
-    </div>
+  <div class="ctrl">
+    <label>Laundry (W)</label>
+    <input type="range" min="0" max="500" value="0"   oninput="setP(0,this.value)">
+    <span class="val-badge" id="v0">0 W</span>
   </div>
-
-  <div class="card-demo">
-    <div class="card">
-
-      <div class="header">
-        <span class="title">Server Rack</span>
-        <div class="status">
-          <div class="status-dot"></div>
-          <span>Online</span>
-        </div>
-      </div>
-
-      <div class="gauge-wrapper">
-        <svg class="gauge-svg" viewBox="0 0 180 180">
-          <defs>
-            <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#818cf8"/>
-              <stop offset="100%" stop-color="#38bdf8"/>
-            </linearGradient>
-          </defs>
-          <path class="gauge-track" id="trackPath"/>
-          <path class="gauge-glow" id="glowPath"/>
-          <path class="gauge-fill" id="fillPath"/>
-        </svg>
-        <div class="gauge-center">
-          <div class="gauge-icon">⚡</div>
-          <div class="gauge-value">
-            <span class="gauge-number" id="powerVal">95</span>
-            <span class="gauge-unit">W</span>
-          </div>
-          <div class="gauge-label" id="flowLabel">Consuming</div>
-        </div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-icon">⚡</span>
-          <div class="stat-value">38.01<span class="stat-unit"> kWh</span></div>
-          <div class="stat-label">Energy</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">〜</span>
-          <div class="stat-value">0.62<span class="stat-unit"> A</span></div>
-          <div class="stat-label">Current</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">◎</span>
-          <div class="stat-value">64<span class="stat-unit">%</span></div>
-          <div class="stat-label">Power Factor</div>
-        </div>
-      </div>
-
-      <div class="bottom-row">
-        <div class="bottom-item">
-          <span class="wave-icon">∿</span>
-          <div>
-            <span class="bottom-value">239 <span class="bottom-unit">V</span></span>
-            <span class="bottom-label">Voltage</span>
-          </div>
-        </div>
-        <div class="bottom-divider"></div>
-        <div class="bottom-item">
-          <span class="wave-icon">∿</span>
-          <div>
-            <span class="bottom-value">49 <span class="bottom-unit">Hz</span></span>
-            <span class="bottom-label">Frequency</span>
-          </div>
-        </div>
-      </div>
-
-      <button class="details-btn">ℹ️ &nbsp;Details</button>
-
-    </div>
+  <div class="ctrl">
+    <label>Kitchen (W)</label>
+    <input type="range" min="0" max="500" value="53"  oninput="setP(1,this.value)">
+    <span class="val-badge" id="v1">53 W</span>
   </div>
+  <div class="ctrl">
+    <label>Office (W)</label>
+    <input type="range" min="0" max="500" value="189" oninput="setP(2,this.value)">
+    <span class="val-badge" id="v2">189 W</span>
+  </div>
+  <div class="ctrl">
+    <label>Heating (W)</label>
+    <input type="range" min="0" max="500" value="69"  oninput="setP(3,this.value)">
+    <span class="val-badge" id="v3">69 W</span>
+  </div>
+  <div class="ctrl">
+    <label>Livingroom (W)</label>
+    <input type="range" min="0" max="500" value="48"  oninput="setP(4,this.value)">
+    <span class="val-badge" id="v4">48 W</span>
+  </div>
+  <div class="ctrl">
+    <label>Bedrooms (W)</label>
+    <input type="range" min="0" max="500" value="29"  oninput="setP(5,this.value)">
+    <span class="val-badge" id="v5">29 W</span>
+  </div>
+</div>
 
-  <div class="page-footer">server-rack-card &nbsp;·&nbsp; Home Assistant Lovelace Custom Card</div>
+<div class="card-title">Power Monitor</div>
+<div class="grid cols-3" id="grid"></div>
 
-  <script>
-    function getArcPath(percent, maxDeg = 260) {
-      const r = 70, cx = 90, cy = 90;
-      const startAngle = -220;
-      const endAngle = startAngle + (maxDeg * Math.min(percent, 100) / 100);
-      const toRad = deg => (deg * Math.PI) / 180;
-      const x1 = cx + r * Math.cos(toRad(startAngle));
-      const y1 = cy + r * Math.sin(toRad(startAngle));
-      const x2 = cx + r * Math.cos(toRad(endAngle));
-      const y2 = cy + r * Math.sin(toRad(endAngle));
-      const largeArc = (maxDeg * percent / 100) > 180 ? 1 : 0;
-      if (percent <= 0) return '';
-      return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
-    }
+<footer>power-monitor-card &nbsp;·&nbsp; Home Assistant Lovelace Custom Card</footer>
 
-    function getTrackPath() {
-      const r = 70, cx = 90, cy = 90;
-      const startAngle = -220;
-      const totalDeg = 260;
-      const endAngle = startAngle + totalDeg;
-      const toRad = deg => (deg * Math.PI) / 180;
-      const x1 = cx + r * Math.cos(toRad(startAngle));
-      const y1 = cy + r * Math.sin(toRad(startAngle));
-      const x2 = cx + r * Math.cos(toRad(endAngle));
-      const y2 = cy + r * Math.sin(toRad(endAngle));
-      return `M ${x1} ${y1} A ${r} ${r} 0 1 1 ${x2} ${y2}`;
-    }
+<script>
+  const DEVICES = [
+    { name:'Laundry',                  power:0,   energy:'279.33', current:'0.00',  pf:'100', volt:'242', freq:'49', max:500 },
+    { name:'Kitchen, WC',              power:53,  energy:'43.60',  current:'0.35',  pf:'61',  volt:'243', freq:'49', max:500 },
+    { name:'Office, Bathroom, Stairs', power:189, energy:'30.23',  current:'0.98',  pf:'79',  volt:'243', freq:'49', max:500 },
+    { name:'Heating',                  power:69,  energy:'24.68',  current:'0.30',  pf:'95',  volt:'243', freq:'49', max:500 },
+    { name:'Livingroom, Guests, Garage',power:48, energy:'35.90',  current:'0.35',  pf:'55',  volt:'243', freq:'49', max:500 },
+    { name:'Bedrooms',                 power:29,  energy:'24.37',  current:'0.25',  pf:'47',  volt:'241', freq:'49', max:500 },
+  ];
 
-    const MAX_POWER = 500;
+  function arcD(pct, full) {
+    const r=52, cx=60, cy=60, s=-220, span=260;
+    const end = s + (full ? span : span * Math.min(pct,100) / 100);
+    const rad = d => d * Math.PI / 180;
+    const [x1,y1] = [cx+r*Math.cos(rad(s)), cy+r*Math.sin(rad(s))];
+    const [x2,y2] = [cx+r*Math.cos(rad(end)), cy+r*Math.sin(rad(end))];
+    const lg = (full ? span : span*pct/100) > 180 ? 1 : 0;
+    if (!full && pct<=0) return '';
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${lg} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
 
-    function updateCard() {
-      const power = parseInt(document.getElementById('powerSlider').value);
-      const percent = (power / MAX_POWER) * 100;
-      const arcPath = getArcPath(percent);
+  function tileSVG(pct, id) {
+    const gid = 'grad' + id;
+    const track = arcD(100, true);
+    const arc   = arcD(pct, false);
+    return `<svg class="gauge-svg" viewBox="0 0 120 120">
+      <defs>
+        <linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#818cf8"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+      <path class="g-track" d="${track}"/>
+      ${arc ? `<path class="g-glow" d="${arc}" stroke="url(#${gid})"/>
+      <path class="g-arc"  d="${arc}" stroke="url(#${gid})"/>` : ''}
+    </svg>`;
+  }
 
-      document.getElementById('trackPath').setAttribute('d', getTrackPath());
-      document.getElementById('fillPath').setAttribute('d', arcPath);
-      document.getElementById('glowPath').setAttribute('d', arcPath);
-      document.getElementById('powerVal').textContent = power;
-      document.getElementById('powerDisplay').textContent = power + ' W';
-      document.getElementById('flowLabel').textContent = power > 0 ? 'Consuming' : 'Standby';
-    }
+  function renderTile(dev, i) {
+    const pct = (dev.power / dev.max) * 100;
+    const flow = dev.power > 0 ? 'Consuming' : 'Standby';
+    return `
+      <div class="tile">
+        <div class="tile-header">
+          <span class="tile-name">${dev.name}</span>
+          <div class="status"><div class="dot"></div><span>Online</span></div>
+        </div>
+        <div class="gauge-wrap">
+          ${tileSVG(pct, i)}
+          <div class="gauge-center">
+            <div class="g-row"><span class="g-num" id="pval${i}">${dev.power}</span><span class="g-unit"> W</span></div>
+            <div class="g-lbl" id="plbl${i}">${flow}</div>
+          </div>
+        </div>
+        <div class="stats cols-3">
+          <div class="stat"><span class="s-val">${dev.energy}</span><span class="s-unit"> kWh</span><span class="s-lbl">Energy</span></div>
+          <div class="stat"><span class="s-val">${dev.current}</span><span class="s-unit"> A</span><span class="s-lbl">Current</span></div>
+          <div class="stat"><span class="s-val">${dev.pf}</span><span class="s-unit">%</span><span class="s-lbl">PF</span></div>
+        </div>
+        <div class="bottom">
+          <div class="b-item">
+            <span class="b-wave" style="color:#a78bfa">&#8767;</span>
+            <div><span class="b-val">${dev.volt}</span><span class="b-unit"> V</span><span class="b-lbl">Voltage</span></div>
+          </div>
+          <div class="b-div"></div>
+          <div class="b-item">
+            <span class="b-wave" style="color:#38bdf8">&#8767;</span>
+            <div><span class="b-val">${dev.freq}</span><span class="b-unit"> Hz</span><span class="b-lbl">Frequency</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
 
-    // Init
-    updateCard();
-  </script>
+  function renderAll() {
+    document.getElementById('grid').innerHTML = DEVICES.map((d,i) => renderTile(d,i)).join('');
+  }
+
+  function setP(i, val) {
+    DEVICES[i].power = parseInt(val);
+    document.getElementById('v'+i).textContent = val + ' W';
+    // Update just the gauge number and label live
+    const pvalEl = document.getElementById('pval'+i);
+    const plblEl = document.getElementById('plbl'+i);
+    if (pvalEl) pvalEl.textContent = val;
+    if (plblEl) plblEl.textContent = val > 0 ? 'Consuming' : 'Standby';
+    // Re-render SVG arc
+    const tile = document.querySelectorAll('.tile')[i];
+    if (!tile) return;
+    const pct = (val / DEVICES[i].max) * 100;
+    const gid = 'grad'+i;
+    const arc = arcD(pct, false);
+    const glow = tile.querySelector('.g-glow');
+    const arcEl = tile.querySelector('.g-arc');
+    if (glow)  { if(arc){ glow.setAttribute('d',arc); glow.style.display=''; } else { glow.style.display='none'; } }
+    if (arcEl) { if(arc){ arcEl.setAttribute('d',arc); arcEl.style.display=''; } else { arcEl.style.display='none'; } }
+  }
+
+  function setColumns(cls) {
+    const grid = document.getElementById('grid');
+    grid.className = 'grid ' + (cls || '');
+  }
+
+  renderAll();
+</script>
 </body>
 </html>
