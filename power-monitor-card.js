@@ -1,48 +1,85 @@
 /**
- * Power Monitor Card  v1.2.0
+ * Power Monitor Card  v2.0.0
  * Multi-device, responsive, glassmorphism Lovelace custom card for Home Assistant.
  * Supports a visual editor and any number of monitored circuits/devices.
  *
- * https://github.com/robman2026/power-monitor-card
+ * Layout: Variant C – gauge left / phase-table right on 3-phase tiles.
+ * https://github.com/robman2026/Power-Energy-HA-Dashboard
  */
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CARD_VERSION = '1.4.0';
+const CARD_VERSION = '2.0.0';
 const CARD_TAG     = 'power-monitor-card';
 const EDITOR_TAG   = 'power-monitor-card-editor';
 
-// Single-phase entity fields
+// ── Single-phase entity fields ────────────────────────────────────────────────
 const DEVICE_FIELDS_1P = [
-  { key: 'power_entity',        label: 'Power (W)',               required: true  },
-  { key: 'flow_entity',         label: 'Flow / direction',        required: false },
-  { key: 'energy_entity',       label: 'Energy (kWh)',            required: false },
-  { key: 'current_entity',      label: 'Current (A)',             required: false },
-  { key: 'power_factor_entity', label: 'Power Factor (%)',        required: false },
-  { key: 'voltage_entity',      label: 'Voltage (V)',             required: false },
-  { key: 'frequency_entity',    label: 'Frequency (Hz)',          required: false },
+  { key: 'power_entity',        label: 'Power (W)',        required: true  },
+  { key: 'flow_entity',         label: 'Flow / direction', required: false },
+  { key: 'energy_entity',       label: 'Energy (kWh)',     required: false },
+  { key: 'current_entity',      label: 'Current (A)',      required: false },
+  { key: 'power_factor_entity', label: 'Power Factor (%)', required: false },
+  { key: 'voltage_entity',      label: 'Voltage (V)',      required: false },
+  { key: 'frequency_entity',    label: 'Frequency (Hz)',   required: false },
 ];
 
-// Three-phase entity fields
+// ── Three-phase entity fields ─────────────────────────────────────────────────
+// NOTE: no current_entity / voltage_entity / frequency_entity here.
+//       Those scalar keys are 1-phase only.  3-phase uses per-phase _a/_b/_c variants.
 const DEVICE_FIELDS_3P = [
-  { key: 'power_entity',          label: 'Total Power (W)',         required: true  },
-  { key: 'power_a_entity',        label: 'Power Phase A (W)',       required: false },
-  { key: 'power_b_entity',        label: 'Power Phase B (W)',       required: false },
-  { key: 'power_c_entity',        label: 'Power Phase C (W)',       required: false },
-  { key: 'flow_entity',           label: 'Flow / direction',        required: false },
-  { key: 'energy_entity',         label: 'Total Energy (kWh)',      required: false },
-  { key: 'energy_p_entity',       label: 'Energy Produced (kWh)',    required: false },
-  { key: 'energy_c_entity',       label: 'Energy Consumed (kWh)',    required: false },
+  { key: 'power_entity',          label: 'Total Power (W)',       required: true  },
+  { key: 'power_a_entity',        label: 'Power Phase A (W)',     required: false },
+  { key: 'power_b_entity',        label: 'Power Phase B (W)',     required: false },
+  { key: 'power_c_entity',        label: 'Power Phase C (W)',     required: false },
+  { key: 'flow_entity',           label: 'Flow / direction',      required: false },
+  { key: 'energy_entity',         label: 'Total Energy (kWh)',    required: false },
+  { key: 'energy_p_entity',       label: 'Energy Produced (kWh)', required: false },
+  { key: 'energy_c_entity',       label: 'Energy Consumed (kWh)', required: false },
   { key: 'energy_t_entity',       label: 'Energy Total (kWh)',    required: false },
-  { key: 'current_a_entity',      label: 'Current Phase A (A)',     required: false },
-  { key: 'current_b_entity',      label: 'Current Phase B (A)',     required: false },
-  { key: 'current_c_entity',      label: 'Current Phase C (A)',     required: false },
-  { key: 'voltage_a_entity',      label: 'Voltage Phase A (V)',     required: false },
-  { key: 'voltage_b_entity',      label: 'Voltage Phase B (V)',     required: false },
-  { key: 'voltage_c_entity',      label: 'Voltage Phase C (V)',     required: false },
-  { key: 'power_factor_entity',   label: 'Power Factor (%)',        required: false },
-  { key: 'power_reactive_entity', label: 'Reactive Power (VAR)',    required: false },
+  { key: 'current_a_entity',      label: 'Current Phase A (A)',   required: false },
+  { key: 'current_b_entity',      label: 'Current Phase B (A)',   required: false },
+  { key: 'current_c_entity',      label: 'Current Phase C (A)',   required: false },
+  { key: 'voltage_a_entity',      label: 'Voltage Phase A (V)',   required: false },
+  { key: 'voltage_b_entity',      label: 'Voltage Phase B (V)',   required: false },
+  { key: 'voltage_c_entity',      label: 'Voltage Phase C (V)',   required: false },
+  { key: 'power_factor_entity',   label: 'Power Factor (%)',      required: false },
+  { key: 'power_reactive_entity', label: 'Reactive Power (VAR)',  required: false },
 ];
+
+// ── Phase-row icons (inline SVG) ──────────────────────────────────────────────
+//
+// POWER   – solid lightning bolt  (universally understood as electrical power / watts)
+// CURRENT – smooth sine wave + arrow  (standard AC-current symbol, shows direction)
+// VOLTAGE – sawtooth zigzag  (represents potential difference / voltage waveform)
+// ENERGY  – hollow circle with internal bolt  (accumulated energy / kWh counter)
+
+const ICON_POWER = `<svg viewBox="0 0 14 14" width="14" height="14"
+  fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M8.5 1.5 L4 8 H7.5 L5.5 12.5 L11 6 H7.5 Z"/>
+</svg>`;
+
+const ICON_CURRENT = `<svg viewBox="0 0 18 10" width="18" height="10"
+  fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+  xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M0.5 5 C2 5 2.5 1.5 5 1.5 S7.5 8.5 10 8.5 S12.5 5 14 5"/>
+  <path d="M13.5 5 H16 M15 3.5 L16.5 5 L15 6.5" stroke-width="1.4"/>
+</svg>`;
+
+const ICON_VOLTAGE = `<svg viewBox="0 0 16 10" width="16" height="10"
+  fill="none" stroke="currentColor" stroke-width="1.7"
+  stroke-linecap="round" stroke-linejoin="round"
+  xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M1 5 L4 1.5 L7.5 8.5 L11 1.5 L14 5"/>
+</svg>`;
+
+const ICON_ENERGY = `<svg viewBox="0 0 14 14" width="14" height="14"
+  fill="none" stroke="currentColor" stroke-width="1.3"
+  stroke-linecap="round" stroke-linejoin="round"
+  xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle cx="7" cy="7" r="5.5"/>
+  <path d="M8.3 3.8 L5.7 7 H8 L5.7 10.2" stroke-width="1.5"/>
+</svg>`;
 
 // ─── Visual Editor ────────────────────────────────────────────────────────────
 
@@ -59,9 +96,9 @@ class PowerMonitorCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    // Push hass into any already-mounted pickers immediately
+    // Push updated hass into already-mounted pickers
     this.shadowRoot.querySelectorAll('ha-entity-picker').forEach(p => { p.hass = hass; });
-    // If _render() ran before hass was ready, inject pickers now
+    // Retry injection (covers the case where hass arrives after _render)
     this._injectPickers();
   }
 
@@ -69,8 +106,6 @@ class PowerMonitorCardEditor extends HTMLElement {
     this._config = JSON.parse(JSON.stringify(config));
     if (!this._config.devices) this._config.devices = [];
     this._render();
-    // _injectPickers is called at end of _render(); if hass isn't ready yet
-    // the hass setter will call it again once hass arrives.
   }
 
   // ── Config helpers ─────────────────────────────────────────────────────────
@@ -111,7 +146,7 @@ class PowerMonitorCardEditor extends HTMLElement {
     const newExp = {};
     Object.keys(this._expanded).forEach(k => {
       const ki = parseInt(k);
-      if (ki < index) newExp[ki] = this._expanded[ki];
+      if (ki < index)      newExp[ki]     = this._expanded[ki];
       else if (ki > index) newExp[ki - 1] = this._expanded[ki];
     });
     this._expanded = newExp;
@@ -120,7 +155,7 @@ class PowerMonitorCardEditor extends HTMLElement {
   }
 
   _moveDevice(index, dir) {
-    const arr = this._config.devices;
+    const arr    = this._config.devices;
     const target = index + dir;
     if (target < 0 || target >= arr.length) return;
     [arr[index], arr[target]] = [arr[target], arr[index]];
@@ -136,29 +171,36 @@ class PowerMonitorCardEditor extends HTMLElement {
     this._render();
   }
 
-  // ── Picker injection — separated from _render so it can be retried ─────────
+  // ── Entity picker injection ────────────────────────────────────────────────
   //
-  // Strategy: _render() builds the shell HTML with empty <div id="picker-N-KEY">
-  // slots. _injectPickers() fills those slots with ha-entity-picker elements.
-  // It is called:
-  //   1. At the end of _render() (covers case where hass is already set)
-  //   2. From the hass setter (covers case where hass arrives after _render)
-  // The guard `slot.children.length > 0` prevents double-injection.
+  // _render() writes empty <div class="picker-slot" id="picker-N-KEY"> divs.
+  // _injectPickers() fills each slot with one ha-entity-picker element.
+  //
+  // Called from three places:
+  //   1. End of _render() — works when hass already available
+  //   2. requestAnimationFrame after _render() — picks up DOM-settled state
+  //   3. hass setter — picks up late hass arrival
+  //   4. customElements.whenDefined('ha-entity-picker') — picks up late CE registration
+  //
+  // Guard: slot.children.length > 0 prevents double-injection.
 
   _injectPickers() {
-    if (!this._hass) return;   // not ready yet — hass setter will retry
+    if (!this._hass) return;
     const devices = this._config.devices || [];
     devices.forEach((dev, i) => {
       if (!this._expanded[i]) return;
       const fields = (dev.phase_mode === '3') ? DEVICE_FIELDS_3P : DEVICE_FIELDS_1P;
       fields.forEach(field => {
         const slot = this.shadowRoot.querySelector(`#picker-${i}-${field.key}`);
-        if (!slot || slot.children.length > 0) return; // already injected
+        if (!slot || slot.children.length > 0) return;
+
         const picker = document.createElement('ha-entity-picker');
         picker.hass              = this._hass;
         picker.value             = dev[field.key] || '';
         picker.label             = field.label + (field.required ? ' *' : '');
         picker.allowCustomEntity = true;
+        // Polymer attribute form (needed in some HA versions)
+        picker.setAttribute('allow-custom-entity', '');
         picker.addEventListener('value-changed', e => {
           this._updateDevice(i, field.key, e.detail.value);
         });
@@ -167,7 +209,7 @@ class PowerMonitorCardEditor extends HTMLElement {
     });
   }
 
-  // ── Editor HTML render ─────────────────────────────────────────────────────
+  // ── Editor HTML ────────────────────────────────────────────────────────────
 
   _render() {
     const cfg     = this._config;
@@ -176,18 +218,19 @@ class PowerMonitorCardEditor extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
-        .editor { padding: 0; }
 
         .section { margin-bottom: 20px; }
         .section-label {
-          font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-          color: var(--secondary-text-color); margin-bottom: 10px; padding-bottom: 4px;
+          font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+          text-transform: uppercase; color: var(--secondary-text-color);
+          margin-bottom: 10px; padding-bottom: 4px;
           border-bottom: 1px solid var(--divider-color);
         }
         .sub-label {
-          font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
-          color: var(--secondary-text-color); margin: 10px 0 6px;
-          padding-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.05);
+          font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+          text-transform: uppercase; color: var(--secondary-text-color);
+          margin: 10px 0 6px; padding-bottom: 3px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
         .row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -263,11 +306,10 @@ class PowerMonitorCardEditor extends HTMLElement {
         .icon-btn.danger:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
 
         .device-body { padding: 0 12px 12px; }
-        /* Make entity pickers look native */
-        ha-entity-picker {
-          display: block;
-          margin-bottom: 8px;
-        }
+
+        /* picker-slot is the wrapper div; ha-entity-picker is injected inside it */
+        .picker-slot { display: block; margin-bottom: 8px; }
+        .picker-slot ha-entity-picker { display: block; width: 100%; }
 
         .add-btn {
           width: 100%; padding: 10px; background: none;
@@ -280,7 +322,6 @@ class PowerMonitorCardEditor extends HTMLElement {
 
       <div class="editor">
 
-        <!-- ── Card settings ───────────────────────────────────────────── -->
         <div class="section">
           <div class="section-label">Card Settings</div>
           <div class="row">
@@ -303,7 +344,6 @@ class PowerMonitorCardEditor extends HTMLElement {
           </div>
         </div>
 
-        <!-- ── Devices ─────────────────────────────────────────────────── -->
         <div class="section">
           <div class="section-label">Devices (${devices.length})</div>
           <div id="devices-list">
@@ -331,7 +371,7 @@ class PowerMonitorCardEditor extends HTMLElement {
                       <div class="field">
                         <label>Device Name</label>
                         <input type="text" data-device="${i}" data-key="name"
-                          value="${dev.name || ''}" placeholder="e.g. Server Rack">
+                          value="${dev.name || ''}" placeholder="e.g. Laundry">
                       </div>
                       <div class="field">
                         <label>Max Power (W)</label>
@@ -343,7 +383,7 @@ class PowerMonitorCardEditor extends HTMLElement {
                     <div class="color-row">
                       <label>Tile background colour</label>
                       <input type="color" data-device="${i}" data-key="bg_color"
-                        value="${dev.bg_color || '#0d1b2e'}" title="Pick background colour">
+                        value="${dev.bg_color || '#0d1b2e'}">
                       <button class="color-reset" data-reset-color="${i}">Reset</button>
                     </div>
 
@@ -357,7 +397,7 @@ class PowerMonitorCardEditor extends HTMLElement {
 
                     <div class="sub-label">Entities</div>
                     ${(mode === '3' ? DEVICE_FIELDS_3P : DEVICE_FIELDS_1P).map(f => `
-                      <div id="picker-${i}-${f.key}"></div>
+                      <div class="picker-slot" id="picker-${i}-${f.key}"></div>
                     `).join('')}
                   </div>
                 ` : ''}
@@ -370,67 +410,65 @@ class PowerMonitorCardEditor extends HTMLElement {
       </div>
     `;
 
-    // ── Wire global inputs ───────────────────────────────────────────────────
+    // Wire global inputs
     this.shadowRoot.querySelector('#g-title').addEventListener('change', e =>
       this._updateGlobal('title', e.target.value));
-    this.shadowRoot.querySelector('#g-columns').addEventListener('change', e => {
-      const v = e.target.value ? parseInt(e.target.value) : null;
-      this._updateGlobal('columns', v);
-    });
+    this.shadowRoot.querySelector('#g-columns').addEventListener('change', e =>
+      this._updateGlobal('columns', e.target.value ? parseInt(e.target.value) : null));
 
-    // ── Accordion toggles ────────────────────────────────────────────────────
+    // Accordion toggles
     this.shadowRoot.querySelectorAll('[data-toggle]').forEach(el =>
       el.addEventListener('click', () => this._toggleExpanded(parseInt(el.dataset.toggle))));
 
-    // ── Move / remove ────────────────────────────────────────────────────────
+    // Move / remove
     this.shadowRoot.querySelectorAll('[data-move]').forEach(btn =>
       btn.addEventListener('click', () =>
         this._moveDevice(parseInt(btn.dataset.move), parseInt(btn.dataset.dir))));
     this.shadowRoot.querySelectorAll('[data-remove]').forEach(btn =>
       btn.addEventListener('click', () => this._removeDevice(parseInt(btn.dataset.remove))));
 
-    // ── Text / number inputs ─────────────────────────────────────────────────
+    // Text / number inputs
     this.shadowRoot.querySelectorAll('input[data-device][data-key]').forEach(input => {
       if (input.type === 'color') return;
       input.addEventListener('change', e => {
         const idx = parseInt(e.target.dataset.device);
         const key = e.target.dataset.key;
-        let val = e.target.value;
+        let val   = e.target.value;
         if (key === 'max_power') val = val ? parseInt(val) : null;
         this._updateDevice(idx, key, val);
         if (key === 'name') this._render();
       });
     });
 
-    // ── Colour picker ────────────────────────────────────────────────────────
-    this.shadowRoot.querySelectorAll('input[type="color"][data-device]').forEach(input => {
-      input.addEventListener('input', e => {
-        this._updateDevice(parseInt(e.target.dataset.device), 'bg_color', e.target.value);
-      });
-    });
-    this.shadowRoot.querySelectorAll('[data-reset-color]').forEach(btn => {
+    // Colour picker
+    this.shadowRoot.querySelectorAll('input[type="color"][data-device]').forEach(input =>
+      input.addEventListener('input', e =>
+        this._updateDevice(parseInt(e.target.dataset.device), 'bg_color', e.target.value)));
+    this.shadowRoot.querySelectorAll('[data-reset-color]').forEach(btn =>
       btn.addEventListener('click', e => {
         e.stopPropagation();
         this._updateDevice(parseInt(btn.dataset.resetColor), 'bg_color', null);
         this._render();
-      });
-    });
+      }));
 
-    // ── Phase-mode buttons ───────────────────────────────────────────────────
-    this.shadowRoot.querySelectorAll('[data-phase-btn]').forEach(btn => {
+    // Phase-mode buttons
+    this.shadowRoot.querySelectorAll('[data-phase-btn]').forEach(btn =>
       btn.addEventListener('click', e => {
         e.stopPropagation();
         this._updateDevice(parseInt(btn.dataset.phaseBtn), 'phase_mode', btn.dataset.phase);
         this._render();
-      });
-    });
+      }));
 
-    // ── Add device button ────────────────────────────────────────────────────
+    // Add device
     this.shadowRoot.querySelector('#add-device').addEventListener('click', () => this._addDevice());
 
-    // ── Inject entity pickers into their slots ───────────────────────────────
-    // Called synchronously here; hass setter will call again if hass was null.
-    this._injectPickers();
+    // Inject pickers — three strategies for reliability
+    this._injectPickers();                                    // 1. Immediate
+    requestAnimationFrame(() => this._injectPickers());       // 2. After paint
+    if (typeof customElements !== 'undefined') {
+      customElements.whenDefined('ha-entity-picker')          // 3. After CE registration
+        .then(() => this._injectPickers());
+    }
   }
 }
 
@@ -454,15 +492,10 @@ class PowerMonitorCard extends HTMLElement {
       columns: 3,
       devices: [
         {
-          name: 'Device 1',
-          phase_mode:          '1',
-          power_entity:        'sensor.power_device1',
-          energy_entity:       'sensor.energy_device1',
-          current_entity:      'sensor.current_device1',
-          power_factor_entity: 'sensor.power_factor_device1',
-          voltage_entity:      'sensor.voltage',
-          frequency_entity:    'sensor.frequency',
-          max_power: 500,
+          name:         'Device 1',
+          phase_mode:   '1',
+          power_entity: 'sensor.power_device1',
+          max_power:    500,
         },
       ],
     };
@@ -484,7 +517,7 @@ class PowerMonitorCard extends HTMLElement {
     return Math.ceil((this._config?.devices?.length || 1) / (this._config?.columns || 3)) * 4;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────────
 
   _state(id) {
     return (id && this._hass) ? this._hass.states[id] : null;
@@ -500,8 +533,7 @@ class PowerMonitorCard extends HTMLElement {
   }
 
   _unit(id, def) {
-    const s = this._state(id);
-    return (s?.attributes?.unit_of_measurement) || def || '';
+    return this._state(id)?.attributes?.unit_of_measurement || def || '';
   }
 
   _isOnline(dev) {
@@ -512,8 +544,7 @@ class PowerMonitorCard extends HTMLElement {
   _flowLabel(dev) {
     const f = this._val(dev.flow_entity, '');
     if (f && f !== '–') return f.charAt(0).toUpperCase() + f.slice(1);
-    const w = parseFloat(this._val(dev.power_entity, '0'));
-    return w > 0 ? 'Consuming' : 'Standby';
+    return parseFloat(this._val(dev.power_entity, '0')) > 0 ? 'Consuming' : 'Standby';
   }
 
   _arcPct(dev) {
@@ -525,7 +556,7 @@ class PowerMonitorCard extends HTMLElement {
   _arcD(pct, full) {
     const r = 52, cx = 60, cy = 60, s = -220, span = 260;
     const endDeg = s + (full ? span : span * Math.min(pct, 100) / 100);
-    const rad = d => d * Math.PI / 180;
+    const rad    = d => d * Math.PI / 180;
     const x1 = cx + r * Math.cos(rad(s)),      y1 = cy + r * Math.sin(rad(s));
     const x2 = cx + r * Math.cos(rad(endDeg)), y2 = cy + r * Math.sin(rad(endDeg));
     const lg = (full ? span : span * pct / 100) > 180 ? 1 : 0;
@@ -533,34 +564,28 @@ class PowerMonitorCard extends HTMLElement {
     return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${lg} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
-  // Returns two colours [arcColor, glowColor] based on load percentage:
-  //   0–50%  → green  (#22c55e)
-  //  50–75%  → yellow (#eab308)  interpolated
-  //  75–100% → red    (#ef4444)  interpolated
+  // Arc colour: green → yellow → red as load increases 0→50→75→100%
   _arcColors(pct) {
     const p = Math.min(pct, 100);
     let r, g, b;
     if (p <= 50) {
-      // green only
-      r = 34; g = 197; b = 94;
+      r = 34;  g = 197; b = 94;
     } else if (p <= 75) {
-      // green → yellow  (0..1 within 50-75 range)
       const t = (p - 50) / 25;
-      r = Math.round(34  + t * (234 - 34));   // 34→234
-      g = Math.round(197 + t * (179 - 197));  // 197→179
-      b = Math.round(94  + t * (8   - 94));   // 94→8
+      r = Math.round(34  + t * (234 - 34));
+      g = Math.round(197 + t * (179 - 197));
+      b = Math.round(94  + t * (8   - 94));
     } else {
-      // yellow → red  (0..1 within 75-100 range)
       const t = (p - 75) / 25;
-      r = Math.round(234 + t * (239 - 234));  // 234→239
-      g = Math.round(179 + t * (68  - 179));  // 179→68
-      b = Math.round(8   + t * (68  - 8));    // 8→68
+      r = Math.round(234 + t * (239 - 234));
+      g = Math.round(179 + t * (68  - 179));
+      b = Math.round(8   + t * (68  - 8));
     }
-    const hex = (v) => v.toString(16).padStart(2, '0');
-    const color = `#${hex(r)}${hex(g)}${hex(b)}`;
-    const glow  = `rgba(${r},${g},${b},0.75)`;
-    const glowSoft = `rgba(${r},${g},${b},0.13)`;
-    return { color, glow, glowSoft };
+    const hex  = v => v.toString(16).padStart(2, '0');
+    return {
+      color: `#${hex(r)}${hex(g)}${hex(b)}`,
+      glow:  `rgba(${r},${g},${b},0.75)`,
+    };
   }
 
   _moreInfo(id) {
@@ -570,18 +595,20 @@ class PowerMonitorCard extends HTMLElement {
     }));
   }
 
-  // ── 1-Phase tile ─────────────────────────────────────────────────────────────
+  // ── 1-Phase tile ──────────────────────────────────────────────────────────────
+  // Reads ONLY 1-phase entity keys.  Never reads _a/_b/_c variants.
 
   _deviceTile1P(dev) {
-    const online  = this._isOnline(dev);
-    const power   = this._val(dev.power_entity, '0');
-    const powerU  = this._unit(dev.power_entity, 'W');
-    const flow    = this._flowLabel(dev);
-    const pct     = this._arcPct(dev);
-    const trackD  = this._arcD(100, true);
-    const arcD    = this._arcD(pct, false);
-    const { color: arcColor, glow: arcGlow, glowSoft } = this._arcColors(pct);
+    const online = this._isOnline(dev);
+    const power  = this._val(dev.power_entity, '0');
+    const powerU = this._unit(dev.power_entity, 'W');
+    const flow   = this._flowLabel(dev);
+    const pct    = this._arcPct(dev);
+    const trackD = this._arcD(100, true);
+    const arcD   = this._arcD(pct, false);
+    const { color: arcColor, glow: arcGlow } = this._arcColors(pct);
 
+    // 1-phase-only entities
     const energy  = this._val(dev.energy_entity);
     const energyU = this._unit(dev.energy_entity, 'kWh');
     const curr    = this._val(dev.current_entity);
@@ -598,15 +625,8 @@ class PowerMonitorCard extends HTMLElement {
     const hasPF      = !!dev.power_factor_entity;
     const hasVolt    = !!dev.voltage_entity;
     const hasFreq    = !!dev.frequency_entity;
-    const hasStats   = hasEnergy || hasCurrent || hasPF;
-    const hasBottom  = hasVolt || hasFreq;
     const statCount  = [hasEnergy, hasCurrent, hasPF].filter(Boolean).length;
-
-    // bg_color: applied as a very subtle tint overlay so text stays readable.
-    // We inject a ::before pseudo via inline style variable instead of replacing the gradient.
-    const tileStyle = dev.bg_color
-      ? `--tile-tint:${dev.bg_color};`
-      : '';
+    const tileStyle  = dev.bg_color ? `--tile-tint:${dev.bg_color};` : '';
 
     return `
       <div class="tile" style="${tileStyle}">
@@ -617,15 +637,15 @@ class PowerMonitorCard extends HTMLElement {
             <span>${online ? 'Online' : 'Offline'}</span>
           </div>
         </div>
+
         <div class="gauge-wrap" data-entity="${dev.power_entity}">
           <svg class="gauge-svg" viewBox="0 0 120 120">
             <path class="g-track" d="${trackD}"/>
             ${arcD ? `
-              <path class="g-glow" d="${arcD}"
-                stroke="${arcColor}" opacity="0.18" fill="none" stroke-width="12" stroke-linecap="round"/>
-              <path class="g-arc"  d="${arcD}"
-                stroke="${arcColor}" fill="none" stroke-width="5" stroke-linecap="round"
-                style="filter:drop-shadow(0 0 5px ${arcGlow})"/>
+              <path fill="none" stroke="${arcColor}" stroke-width="12" stroke-linecap="round"
+                opacity="0.18" d="${arcD}"/>
+              <path fill="none" stroke="${arcColor}" stroke-width="5" stroke-linecap="round"
+                style="filter:drop-shadow(0 0 5px ${arcGlow})" d="${arcD}"/>
             ` : ''}
           </svg>
           <div class="gauge-center">
@@ -636,7 +656,8 @@ class PowerMonitorCard extends HTMLElement {
             <div class="g-lbl" style="color:${arcColor}">${flow}</div>
           </div>
         </div>
-        ${hasStats ? `
+
+        ${statCount > 0 ? `
           <div class="stats cols-${statCount}">
             ${hasEnergy  ? `<div class="stat" data-entity="${dev.energy_entity}">
               <span class="s-val">${energy}</span><span class="s-unit"> ${energyU}</span>
@@ -649,7 +670,8 @@ class PowerMonitorCard extends HTMLElement {
               <span class="s-lbl">PF</span></div>` : ''}
           </div>
         ` : ''}
-        ${hasBottom ? `
+
+        ${(hasVolt || hasFreq) ? `
           <div class="bottom">
             ${hasVolt ? `<div class="b-item" data-entity="${dev.voltage_entity}">
               <span class="b-wave" style="color:#a78bfa">&#8767;</span>
@@ -671,69 +693,75 @@ class PowerMonitorCard extends HTMLElement {
       </div>`;
   }
 
-  // ── 3-Phase tile ─────────────────────────────────────────────────────────────
+  // ── 3-Phase tile — Variant C ──────────────────────────────────────────────────
+  // Layout: gauge LEFT · phase table RIGHT (flex-wrap to vertical when tile is narrow).
+  // Reads ONLY 3-phase entity keys (power_a/b/c, current_a/b/c, voltage_a/b/c, etc.).
+  // Never reads current_entity / voltage_entity / frequency_entity (those are 1P-only).
 
   _deviceTile3P(dev) {
-    const online  = this._isOnline(dev);
-    const power   = this._val(dev.power_entity, '0');
-    const powerU  = this._unit(dev.power_entity, 'W');
-    const flow    = this._flowLabel(dev);
-    const pct     = this._arcPct(dev);
-    const trackD  = this._arcD(100, true);
-    const arcD    = this._arcD(pct, false);
+    const online = this._isOnline(dev);
+    const power  = this._val(dev.power_entity, '0');
+    const powerU = this._unit(dev.power_entity, 'W');
+    const flow   = this._flowLabel(dev);
+    const pct    = this._arcPct(dev);
+    const trackD = this._arcD(100, true);
+    const arcD   = this._arcD(pct, false);
     const { color: arcColor, glow: arcGlow } = this._arcColors(pct);
-
     const tileStyle = dev.bg_color ? `--tile-tint:${dev.bg_color};` : '';
 
-    // Per-phase power
+    // Per-phase Power — 3P keys only
     const pwrA = dev.power_a_entity ? this._val(dev.power_a_entity) : null;
     const pwrB = dev.power_b_entity ? this._val(dev.power_b_entity) : null;
     const pwrC = dev.power_c_entity ? this._val(dev.power_c_entity) : null;
-    const pwrU = this._unit(dev.power_a_entity || dev.power_entity, 'W');
+    const pwrU = this._unit(dev.power_a_entity || dev.power_b_entity || dev.power_entity, 'W');
 
-    // Energy
-    const energy  = dev.energy_entity   ? this._val(dev.energy_entity)   : null;
+    // Per-phase Current — 3P keys only
+    const curA = dev.current_a_entity ? this._val(dev.current_a_entity) : null;
+    const curB = dev.current_b_entity ? this._val(dev.current_b_entity) : null;
+    const curC = dev.current_c_entity ? this._val(dev.current_c_entity) : null;
+    const curU = this._unit(dev.current_a_entity || dev.current_b_entity, 'A');
+
+    // Per-phase Voltage — 3P keys only
+    const voltA = dev.voltage_a_entity ? this._val(dev.voltage_a_entity) : null;
+    const voltB = dev.voltage_b_entity ? this._val(dev.voltage_b_entity) : null;
+    const voltC = dev.voltage_c_entity ? this._val(dev.voltage_c_entity) : null;
+    const voltU = this._unit(dev.voltage_a_entity || dev.voltage_b_entity, 'V');
+
+    // Energy row (produced / consumed / total)
+    const enP = dev.energy_p_entity ? this._val(dev.energy_p_entity) : null;
+    const enC = dev.energy_c_entity ? this._val(dev.energy_c_entity) : null;
+    const enT = dev.energy_t_entity ? this._val(dev.energy_t_entity) : null;
+
+    // Summary stats below phase table
+    const energy  = dev.energy_entity         ? this._val(dev.energy_entity)         : null;
     const energyU = this._unit(dev.energy_entity, 'kWh');
-    const enA  = dev.energy_p_entity    ? this._val(dev.energy_p_entity)  : null;
-    const enB  = dev.energy_c_entity    ? this._val(dev.energy_c_entity)  : null;
-    const enC  = dev.energy_t_entity    ? this._val(dev.energy_t_entity)  : null;
+    const pf      = dev.power_factor_entity   ? this._val(dev.power_factor_entity)   : null;
+    const pfU     = this._unit(dev.power_factor_entity, '%');
+    const react   = dev.power_reactive_entity ? this._val(dev.power_reactive_entity) : null;
+    const reactU  = this._unit(dev.power_reactive_entity, 'VAR');
 
-    // Current
-    const curA = dev.current_a_entity   ? this._val(dev.current_a_entity) : null;
-    const curB = dev.current_b_entity   ? this._val(dev.current_b_entity) : null;
-    const curC = dev.current_c_entity   ? this._val(dev.current_c_entity) : null;
-    const curU = this._unit(dev.current_a_entity, 'A');
-
-    // Voltage
-    const voltA = dev.voltage_a_entity  ? this._val(dev.voltage_a_entity) : null;
-    const voltB = dev.voltage_b_entity  ? this._val(dev.voltage_b_entity) : null;
-    const voltC = dev.voltage_c_entity  ? this._val(dev.voltage_c_entity) : null;
-    const voltU = this._unit(dev.voltage_a_entity, 'V');
-
-    // Misc (no frequency for 3-phase)
-    const pf     = dev.power_factor_entity   ? this._val(dev.power_factor_entity)   : null;
-    const pfU    = this._unit(dev.power_factor_entity, '%');
-    const react  = dev.power_reactive_entity ? this._val(dev.power_reactive_entity) : null;
-    const reactU = this._unit(dev.power_reactive_entity, 'VAR');
-
-    const phaseRow = (label, vA, vB, vC, unit, eA, eB, eC) => {
+    // Phase-row builder — returns '' when all three values are null (row not configured)
+    const phaseRow = (icon, iconColor, vA, vB, vC, unit, idA, idB, idC) => {
       if (vA === null && vB === null && vC === null) return '';
-      const cell = (v, e, tag) => v !== null
-        ? `<div class="ph-cell"${e ? ` data-entity="${e}"` : ''}>
+      const cell = (v, id) => v !== null
+        ? `<div class="ph-cell"${id ? ` data-entity="${id}"` : ''}>
              <span class="ph-val">${v}</span><span class="ph-unit">${unit}</span>
-             <span class="ph-tag">${tag}</span></div>`
+           </div>`
         : `<div class="ph-cell ph-empty"></div>`;
       return `
         <div class="phase-row">
-          <span class="ph-label">${label}</span>
-          ${cell(vA, eA, 'Phase-A')}${cell(vB, eB, 'Phase-B')}${cell(vC, eC, 'Phase-C')}
+          <div class="ph-icon-cell" style="color:${iconColor}">${icon}</div>
+          ${cell(vA, idA)}${cell(vB, idB)}${cell(vC, idC)}
         </div>`;
     };
 
+    const hasPhaseTable = [pwrA, pwrB, pwrC, curA, curB, curC, voltA, voltB, voltC, enP, enC, enT]
+      .some(v => v !== null);
     const miscCount = [energy, pf, react].filter(Boolean).length;
 
     return `
       <div class="tile tile-3p" style="${tileStyle}">
+
         <div class="tile-header">
           <span class="tile-name">${dev.name || 'Device'}</span>
           <div class="status">
@@ -741,40 +769,66 @@ class PowerMonitorCard extends HTMLElement {
             <span>${online ? 'Online' : 'Offline'}</span>
           </div>
         </div>
-        <div class="gauge-wrap" data-entity="${dev.power_entity}">
-          <svg class="gauge-svg" viewBox="0 0 120 120">
-            <path class="g-track" d="${trackD}"/>
-            ${arcD ? `
-              <path class="g-glow" d="${arcD}"
-                stroke="${arcColor}" opacity="0.18" fill="none" stroke-width="12" stroke-linecap="round"/>
-              <path class="g-arc"  d="${arcD}"
-                stroke="${arcColor}" fill="none" stroke-width="5" stroke-linecap="round"
-                style="filter:drop-shadow(0 0 5px ${arcGlow})"/>
-            ` : ''}
-          </svg>
-          <div class="gauge-center">
-            <div class="g-row">
-              <span class="g-num">${power}</span>
-              <span class="g-unit">${powerU}</span>
+
+        <!-- Variant C: flex row — gauge left, phase table right.
+             flex-wrap causes the table to drop below the gauge when
+             the tile is too narrow (e.g. 2-col on mobile). -->
+        <div class="tile-3p-body">
+
+          <div class="tile-3p-gauge">
+            <div class="gauge-wrap" data-entity="${dev.power_entity}">
+              <svg class="gauge-svg gauge-3p" viewBox="0 0 120 120">
+                <path class="g-track" d="${trackD}"/>
+                ${arcD ? `
+                  <path fill="none" stroke="${arcColor}" stroke-width="12" stroke-linecap="round"
+                    opacity="0.18" d="${arcD}"/>
+                  <path fill="none" stroke="${arcColor}" stroke-width="5" stroke-linecap="round"
+                    style="filter:drop-shadow(0 0 5px ${arcGlow})" d="${arcD}"/>
+                ` : ''}
+              </svg>
+              <div class="gauge-center">
+                <div class="g-row">
+                  <span class="g-num g-num-3p">${power}</span>
+                  <span class="g-unit">${powerU}</span>
+                </div>
+                <div class="g-lbl" style="color:${arcColor}">${flow}</div>
+              </div>
             </div>
-            <div class="g-lbl" style="color:${arcColor}">${flow}</div>
           </div>
-        </div>
-        <div class="phase-table">
-          ${phaseRow('Power',   pwrA,  pwrB,  pwrC,  pwrU,
-            dev.power_a_entity,   dev.power_b_entity,   dev.power_c_entity)}
-          ${phaseRow('Current', curA,  curB,  curC,  curU,
-            dev.current_a_entity, dev.current_b_entity, dev.current_c_entity)}
-          ${phaseRow('Voltage', voltA, voltB, voltC, voltU,
-            dev.voltage_a_entity, dev.voltage_b_entity, dev.voltage_c_entity)}
-          ${phaseRow('Energy',  enA,   enB,   enC,  'kWh',
-            dev.energy_p_entity,  dev.energy_c_entity,  dev.energy_t_entity)}
-        </div>
+
+          ${hasPhaseTable ? `
+          <div class="phase-table">
+            <!-- Column headers -->
+            <div class="phase-row ph-hdr-row">
+              <div class="ph-icon-spacer"></div>
+              <div class="ph-hdr">Phase A</div>
+              <div class="ph-hdr">Phase B</div>
+              <div class="ph-hdr">Phase C</div>
+            </div>
+            <!-- Data rows: icon + Phase A / Phase B / Phase C cells -->
+            ${phaseRow(ICON_POWER,   '#fbbf24',
+                pwrA, pwrB, pwrC, pwrU,
+                dev.power_a_entity,   dev.power_b_entity,   dev.power_c_entity)}
+            ${phaseRow(ICON_CURRENT, '#60a5fa',
+                curA, curB, curC, curU,
+                dev.current_a_entity, dev.current_b_entity, dev.current_c_entity)}
+            ${phaseRow(ICON_VOLTAGE, '#a78bfa',
+                voltA, voltB, voltC, voltU,
+                dev.voltage_a_entity, dev.voltage_b_entity, dev.voltage_c_entity)}
+            ${phaseRow(ICON_ENERGY,  '#34d399',
+                enP, enC, enT, 'kWh',
+                dev.energy_p_entity,  dev.energy_c_entity,  dev.energy_t_entity)}
+          </div>
+          ` : ''}
+
+        </div><!-- /.tile-3p-body -->
+
+        <!-- Summary stats: Total Energy | Power Factor | Reactive Power -->
         ${miscCount > 0 ? `
           <div class="stats cols-${miscCount}">
             ${energy ? `<div class="stat" data-entity="${dev.energy_entity}">
               <span class="s-val">${energy}</span><span class="s-unit"> ${energyU}</span>
-              <span class="s-lbl">Total</span></div>` : ''}
+              <span class="s-lbl">Total Energy</span></div>` : ''}
             ${pf ? `<div class="stat" data-entity="${dev.power_factor_entity}">
               <span class="s-val">${pf}</span><span class="s-unit">${pfU}</span>
               <span class="s-lbl">PF</span></div>` : ''}
@@ -783,10 +837,13 @@ class PowerMonitorCard extends HTMLElement {
               <span class="s-lbl">Reactive</span></div>` : ''}
           </div>
         ` : ''}
+
       </div>`;
+    // No voltage/frequency bottom bar on 3-phase tiles —
+    // phase voltages are shown per-phase in the table above.
   }
 
-  // ── Main render ──────────────────────────────────────────────────────────────
+  // ── Main render ───────────────────────────────────────────────────────────────
 
   _render() {
     if (!this._config || !this._hass) return;
@@ -803,7 +860,6 @@ class PowerMonitorCard extends HTMLElement {
         :host {
           display: block;
           font-family: 'Exo 2', sans-serif;
-          /* Mobile scroll fix: do not create an independent scroll/touch context */
           touch-action: pan-y;
           -webkit-overflow-scrolling: auto;
         }
@@ -834,7 +890,7 @@ class PowerMonitorCard extends HTMLElement {
           .grid { grid-template-columns: 1fr !important; gap: 8px; }
         }
 
-        /* ── Tile ── */
+        /* ── Tile base ── */
         .tile {
           background: linear-gradient(145deg, #0d1b2e 0%, #0a1628 55%, #0e2040 100%);
           border-radius: 16px; padding: 16px;
@@ -844,33 +900,29 @@ class PowerMonitorCard extends HTMLElement {
                       inset 0 1px 0 rgba(255,255,255,0.04);
           touch-action: pan-y;
         }
-        /* Decorative radial highlight (top-right) */
         .tile::before {
           content:''; position:absolute; top:-50px; right:-50px; pointer-events:none;
           width:160px; height:160px; z-index:0;
           background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
         }
-        /* Colour tint overlay — activated via --tile-tint CSS variable */
         .tile::after {
-          content:''; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:16px;
-          background: var(--tile-tint, transparent);
-          opacity: 0.18;   /* subtle: colour bleeds through without killing text readability */
-          mix-blend-mode: color;
+          content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+          border-radius:16px; background: var(--tile-tint, transparent);
+          opacity: 0.18; mix-blend-mode: color;
         }
 
         @media (max-width: 520px) {
-          .tile { padding: 10px 8px; border-radius: 12px; }
-          .tile-name { font-size: 10px; letter-spacing: 1px; }
-          .gauge-svg { width: 90px; height: 90px; }
-          .g-num { font-size: 20px; }
-          .g-lbl  { font-size: 8px; }
-          .s-val  { font-size: 12px; }
+          .tile          { padding: 10px 8px; border-radius: 12px; }
+          .tile-name     { font-size: 10px !important; letter-spacing: 1px; }
+          .g-num         { font-size: 20px !important; }
+          .g-lbl         { font-size: 8px; }
+          .s-val         { font-size: 12px; }
           .s-lbl, .s-unit, .b-lbl, .b-unit { font-size: 8px; }
-          .b-val  { font-size: 12px; }
-          .stat   { padding: 6px 4px; }
-          .bottom { padding: 6px 8px; }
-          .ph-val { font-size: 11px; }
-          .ph-unit, .ph-tag { font-size: 7px; }
+          .b-val         { font-size: 12px; }
+          .stat          { padding: 6px 4px; }
+          .bottom        { padding: 6px 8px; }
+          .ph-val        { font-size: 10px !important; }
+          .ph-unit, .ph-hdr { font-size: 7px !important; }
         }
 
         /* ── Tile header ── */
@@ -893,10 +945,8 @@ class PowerMonitorCard extends HTMLElement {
           display:flex; justify-content:center; position:relative; z-index:1;
           margin-bottom:12px; cursor:pointer;
         }
-        .gauge-svg { width:120px; height:120px; filter:drop-shadow(0 0 8px rgba(96,165,250,0.2)); }
-        .g-track { fill:none; stroke:rgba(255,255,255,0.05); stroke-width:5; stroke-linecap:round; }
-        .g-glow  { fill:none; stroke-width:12; stroke-linecap:round; opacity:.13; }
-        .g-arc   { fill:none; stroke-width:5;  stroke-linecap:round; filter:drop-shadow(0 0 5px rgba(96,165,250,0.75)); }
+        .gauge-svg  { width:120px; height:120px; filter:drop-shadow(0 0 8px rgba(96,165,250,0.2)); }
+        .g-track    { fill:none; stroke:rgba(255,255,255,0.05); stroke-width:5; stroke-linecap:round; }
         .gauge-center {
           position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
           text-align:center; pointer-events:none;
@@ -904,7 +954,7 @@ class PowerMonitorCard extends HTMLElement {
         .g-row  { display:flex; align-items:baseline; justify-content:center; gap:1px; line-height:1; }
         .g-num  { font-size:26px; font-weight:700; color:#fff; letter-spacing:-1px; text-shadow:0 0 16px rgba(96,165,250,0.5); }
         .g-unit { font-size:11px; font-weight:300; color:rgba(148,163,184,0.7); margin-bottom:2px; }
-        .g-lbl  { font-size:10px; color:rgba(96,165,250,0.85); letter-spacing:1px; text-transform:uppercase; margin-top:3px; }
+        .g-lbl  { font-size:10px; letter-spacing:1px; text-transform:uppercase; margin-top:3px; font-weight:600; }
 
         /* ── Stats ── */
         .stats { display:grid; gap:7px; margin-bottom:7px; position:relative; z-index:1; }
@@ -922,7 +972,7 @@ class PowerMonitorCard extends HTMLElement {
         .s-unit { font-size:9px;  color:rgba(148,163,184,0.55); }
         .s-lbl  { font-size:9px;  color:rgba(100,116,139,0.85); text-transform:uppercase; letter-spacing:.6px; margin-top:3px; }
 
-        /* ── Bottom row (voltage / freq) ── */
+        /* ── Bottom row: voltage / frequency (1-phase only) ── */
         .bottom {
           background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.05);
           border-radius:9px; padding:8px 12px; display:flex; justify-content:space-around;
@@ -936,34 +986,63 @@ class PowerMonitorCard extends HTMLElement {
         .b-lbl  { font-size:9px;  color:rgba(100,116,139,0.8); text-transform:uppercase; letter-spacing:.6px; }
         .b-div  { width:1px; background:rgba(255,255,255,0.06); align-self:stretch; }
 
-        /* ── 3-Phase table ── */
+        /* ── 3-Phase Variant C body ── */
+        .tile-3p-body {
+          display: flex;
+          flex-wrap: wrap;      /* wraps to vertical when tile is too narrow */
+          gap: 10px;
+          align-items: flex-start;
+          margin-bottom: 7px;
+          position: relative;
+          z-index: 1;
+        }
+        .tile-3p-gauge { flex-shrink: 0; }
+        /* Remove bottom margin from gauge when it's beside the phase table */
+        .tile-3p-body .gauge-wrap { margin-bottom: 0; }
+        /* Smaller gauge in 3P tile to leave room for the phase table */
+        .tile-3p-body .gauge-3p  { width: 90px; height: 90px; }
+        .tile-3p-body .g-num-3p  { font-size: 20px; }
+
+        /* ── Phase table ── */
         .phase-table {
-          background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 10px; padding: 6px; margin-bottom: 7px;
-          display: flex; flex-direction: column; gap: 4px;
+          flex: 1;
+          min-width: 168px;   /* if tile < ~268px wide, wraps below gauge automatically */
+          background: rgba(0,0,0,0.15);
+          border: 1px solid rgba(255,255,255,0.05);
+          border-radius: 10px;
+          padding: 5px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
         }
         .phase-row {
-          display: grid; grid-template-columns: 52px repeat(3, 1fr); gap: 4px;
+          display: grid;
+          grid-template-columns: 22px repeat(3, 1fr);
+          gap: 3px;
           align-items: center;
         }
-        .ph-label {
-          font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
-          color: rgba(100,116,139,0.75);
+        /* Header row — re-uses .phase-row grid, no icon cell */
+        .ph-hdr-row { }
+        .ph-icon-spacer { width: 22px; }
+        .ph-hdr {
+          font-size: 8px; font-weight: 700; letter-spacing: 0.5px;
+          text-transform: uppercase; color: rgba(96,165,250,0.75);
+          text-align: center; padding: 2px 0;
+        }
+        .ph-icon-cell {
+          display: flex; align-items: center; justify-content: center;
+          padding: 2px 0; flex-shrink: 0;
         }
         .ph-cell {
           background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 6px; padding: 4px 5px; text-align: center;
+          border-radius: 5px; padding: 4px 2px; text-align: center;
           cursor: pointer; transition: background .2s;
-          display: flex; flex-direction: column; align-items: center;
+          display: flex; flex-direction: column; align-items: center; min-width: 0;
         }
         .ph-cell:hover { background: rgba(96,165,250,0.08); }
         .ph-cell.ph-empty { background: none; border-color: transparent; cursor: default; }
-        .ph-val  { font-size: 13px; font-weight: 700; color: #f1f5f9; line-height: 1; }
+        .ph-val  { font-size: 12px; font-weight: 700; color: #f1f5f9; line-height: 1; }
         .ph-unit { font-size: 8px;  color: rgba(148,163,184,0.5); }
-        .ph-tag  {
-          font-size: 8px; font-weight: 700; letter-spacing: .5px;
-          color: rgba(96,165,250,0.7); margin-top: 1px;
-        }
       </style>
 
       <ha-card>
@@ -971,14 +1050,16 @@ class PowerMonitorCard extends HTMLElement {
           ${cfg.title ? `<div class="card-title">${cfg.title}</div>` : ''}
           <div class="grid">
             ${devices.map(dev =>
-              (dev.phase_mode === '3') ? this._deviceTile3P(dev) : this._deviceTile1P(dev)
+              (dev.phase_mode === '3')
+                ? this._deviceTile3P(dev)
+                : this._deviceTile1P(dev)
             ).join('')}
           </div>
         </div>
       </ha-card>
     `;
 
-    // Wire all [data-entity] clicks → more-info
+    // Wire every [data-entity] element to open the HA more-info dialog
     this.shadowRoot.querySelectorAll('[data-entity]').forEach(el => {
       const id = el.dataset.entity;
       if (id) el.addEventListener('click', () => this._moreInfo(id));
@@ -997,7 +1078,7 @@ if (!window.customCards.find(c => c.type === CARD_TAG)) {
     name:             'Power Monitor Card',
     description:      'Multi-device responsive power monitoring — supports 1-phase and 3-phase circuits',
     preview:          true,
-    documentationURL: 'https://github.com/robman2026/power-monitor-card',
+    documentationURL: 'https://github.com/robman2026/Power-Energy-HA-Dashboard',
   });
 }
 
