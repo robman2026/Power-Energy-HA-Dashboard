@@ -9,7 +9,7 @@
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CARD_VERSION = '2.0.0';
+const CARD_VERSION = '2.1.0';
 const CARD_TAG     = 'power-monitor-card';
 const EDITOR_TAG   = 'power-monitor-card-editor';
 
@@ -93,6 +93,34 @@ class PowerMonitorCardEditor extends HTMLElement {
   }
 
   // ── HA lifecycle ───────────────────────────────────────────────────────────
+
+  // connectedCallback: pre-load ha-entity-picker via loadCardHelpers so that
+  // _injectPickers() always finds the custom element already registered.
+  // Without this, the injected <ha-entity-picker> elements exist in the DOM
+  // but are never upgraded and therefore render as invisible blank divs.
+  connectedCallback() {
+    if (!this._pickersLoaded) {
+      const load = async () => {
+        try {
+          if (!customElements.get('ha-entity-picker')) {
+            const helpers = await window.loadCardHelpers();
+            // Instantiating an "entities" card forces HA to register ha-entity-picker
+            const card = await helpers.createCardElement({ type: 'entities', entities: [] });
+            await card.constructor.getConfigElement?.();
+          }
+        } catch (_) {}
+        this._pickersLoaded = true;
+        // Retry injection now that the element is registered
+        this._injectPickers();
+      };
+      // Safety valve: mark loaded after 3 s even if the above fails
+      const timeout = setTimeout(() => {
+        this._pickersLoaded = true;
+        this._injectPickers();
+      }, 3000);
+      load().then(() => clearTimeout(timeout));
+    }
+  }
 
   set hass(hass) {
     this._hass = hass;
