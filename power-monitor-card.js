@@ -9,7 +9,7 @@
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CARD_VERSION = '2.1.0';
+const CARD_VERSION = '2.2.0';
 const CARD_TAG     = 'power-monitor-card';
 const EDITOR_TAG   = 'power-monitor-card-editor';
 
@@ -344,9 +344,66 @@ class PowerMonitorCardEditor extends HTMLElement {
           transition: background .15s, border-color .15s;
         }
         .add-btn:hover { background: rgba(96,165,250,0.08); border-color: var(--primary-color); }
+
+        /* Toggle */
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; margin-bottom: 8px; }
+        .toggle-label { font-size: 13px; color: var(--primary-text-color, rgba(255,255,255,.85)); }
+        .toggle-wrap { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+        .toggle-wrap input { display: none; }
+        .toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,.15); border-radius: 11px; cursor: pointer; transition: background .2s; }
+        .toggle-slider::before { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+        .toggle-wrap input:checked + .toggle-slider { background: var(--primary-color, #3b82f6); }
+        .toggle-wrap input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+        /* Range slider */
+        .range-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .range-val { font-size: 12px; font-weight: 600; color: var(--primary-color, #3b82f6); font-family: monospace; min-width: 38px; text-align: right; flex-shrink: 0; }
+        .range-input {
+          -webkit-appearance: none; flex: 1; height: 4px; border-radius: 2px; outline: none; cursor: pointer;
+          background: linear-gradient(to right, var(--primary-color, #3b82f6) 0%, var(--primary-color, #3b82f6) var(--rp, 50%), var(--divider-color, rgba(255,255,255,.12)) var(--rp, 50%), var(--divider-color, rgba(255,255,255,.12)) 100%);
+          border: none;
+        }
+        .range-input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.4); cursor: pointer; }
+        .range-input::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; border: none; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.4); cursor: pointer; }
+        .frosted-fields { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+        .hint { font-size: 11px; color: var(--secondary-text-color); line-height: 1.5; margin: 0 0 8px; }
       </style>
 
       <div class="editor">
+
+        <div class="section">
+          <div class="section-label">🎨 Appearance</div>
+          <div class="toggle-row">
+            <span class="toggle-label">Frosted Glass Mode</span>
+            <label class="toggle-wrap">
+              <input type="checkbox" id="fg-toggle" ${cfg.frosted_glass ? 'checked' : ''} />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="frosted-fields" id="frosted-fields" style="display:${cfg.frosted_glass ? 'flex' : 'none'}">
+            <p class="hint">Translucent blur effect on the card and all tiles. Works best with a dynamic wallpaper behind Home Assistant.</p>
+            <div class="field">
+              <label>Glass Opacity</label>
+              <div class="range-row">
+                <input type="range" class="range-input" id="opacity-range"
+                  min="0.1" max="0.9" step="0.01"
+                  value="${cfg.frosted_opacity || 0.52}"
+                  style="--rp:${Math.round(((cfg.frosted_opacity || 0.52) - 0.1) / 0.8 * 100)}%" />
+                <span class="range-val" id="opacity-val">${(cfg.frosted_opacity || 0.52).toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Blur Strength</label>
+              <div class="range-row">
+                <input type="range" class="range-input" id="blur-range"
+                  min="4" max="40" step="1"
+                  value="${cfg.frosted_blur || 22}"
+                  style="--rp:${Math.round(((cfg.frosted_blur || 22) - 4) / 36 * 100)}%" />
+                <span class="range-val" id="blur-val">${cfg.frosted_blur || 22}px</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="section">
           <div class="section-label">Card Settings</div>
@@ -442,6 +499,40 @@ class PowerMonitorCardEditor extends HTMLElement {
     this.shadowRoot.querySelector('#g-columns').addEventListener('change', e =>
       this._updateGlobal('columns', e.target.value ? parseInt(e.target.value) : null));
 
+    // Frosted glass toggle
+    const fgToggle = this.shadowRoot.getElementById('fg-toggle');
+    const fgFields = this.shadowRoot.getElementById('frosted-fields');
+    if (fgToggle) {
+      fgToggle.addEventListener('change', e => {
+        this._updateGlobal('frosted_glass', e.target.checked);
+        if (fgFields) fgFields.style.display = e.target.checked ? 'flex' : 'none';
+      });
+    }
+
+    // Opacity range
+    const opRange = this.shadowRoot.getElementById('opacity-range');
+    const opVal   = this.shadowRoot.getElementById('opacity-val');
+    if (opRange) {
+      opRange.addEventListener('input', e => {
+        const v = parseFloat(e.target.value);
+        e.target.style.setProperty('--rp', Math.round((v - 0.1) / 0.8 * 100) + '%');
+        if (opVal) opVal.textContent = v.toFixed(2);
+        this._updateGlobal('frosted_opacity', v);
+      });
+    }
+
+    // Blur range
+    const blRange = this.shadowRoot.getElementById('blur-range');
+    const blVal   = this.shadowRoot.getElementById('blur-val');
+    if (blRange) {
+      blRange.addEventListener('input', e => {
+        const v = parseInt(e.target.value);
+        e.target.style.setProperty('--rp', Math.round((v - 4) / 36 * 100) + '%');
+        if (blVal) blVal.textContent = v + 'px';
+        this._updateGlobal('frosted_blur', v);
+      });
+    }
+
     // Accordion toggles
     this.shadowRoot.querySelectorAll('[data-toggle]').forEach(el =>
       el.addEventListener('click', () => this._toggleExpanded(parseInt(el.dataset.toggle))));
@@ -516,6 +607,9 @@ class PowerMonitorCard extends HTMLElement {
     return {
       title: 'Power Monitor',
       columns: 3,
+      frosted_glass: false,
+      frosted_opacity: 0.52,
+      frosted_blur: 22,
       devices: [
         {
           name:         'Device 1',
@@ -536,7 +630,13 @@ class PowerMonitorCard extends HTMLElement {
     if (!config.devices || !config.devices.length) {
       throw new Error('power-monitor-card: at least one device must be defined');
     }
-    this._config = { title: '', columns: 0, ...config };
+    this._config = {
+      title: '', columns: 0,
+      frosted_glass: false,
+      frosted_opacity: 0.52,
+      frosted_blur: 22,
+      ...config,
+    };
   }
 
   getCardSize() {
@@ -1069,10 +1169,55 @@ class PowerMonitorCard extends HTMLElement {
         .ph-cell.ph-empty { background: none; border-color: transparent; cursor: default; }
         .ph-val  { font-size: 12px; font-weight: 700; color: #f1f5f9; line-height: 1; }
         .ph-unit { font-size: 8px;  color: rgba(148,163,184,0.5); }
+
+        /* ── Frosted Glass (activated by .pmc-frosted on .card-wrap) ── */
+        :host {
+          --pmc-fg-bg: rgba(8,14,30,0.52);
+          --pmc-fg-blur: 22px;
+        }
+        .card-wrap.pmc-frosted {
+          background: var(--pmc-fg-bg) !important;
+          backdrop-filter: blur(var(--pmc-fg-blur)) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(var(--pmc-fg-blur)) saturate(180%) !important;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.09) !important;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+          padding: 18px;
+        }
+        /* Device tiles */
+        .pmc-frosted .tile {
+          background: rgba(255,255,255,0.05) !important;
+          backdrop-filter: blur(var(--pmc-fg-blur)) !important;
+          -webkit-backdrop-filter: blur(var(--pmc-fg-blur)) !important;
+          border-color: rgba(255,255,255,0.1) !important;
+          box-shadow: none !important;
+        }
+        .pmc-frosted .tile::before { display: none !important; }
+        /* Stat tiles */
+        .pmc-frosted .stat {
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.09) !important;
+        }
+        .pmc-frosted .stat:hover { background: rgba(255,255,255,0.09) !important; }
+        /* Bottom row (voltage/freq) */
+        .pmc-frosted .bottom {
+          background: rgba(255,255,255,0.04) !important;
+          border-color: rgba(255,255,255,0.08) !important;
+        }
+        /* Phase table */
+        .pmc-frosted .phase-table {
+          background: rgba(255,255,255,0.04) !important;
+          border-color: rgba(255,255,255,0.08) !important;
+        }
+        .pmc-frosted .ph-cell {
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.09) !important;
+        }
+        .pmc-frosted .ph-cell:hover { background: rgba(255,255,255,0.09) !important; }
       </style>
 
       <ha-card>
-        <div class="card-wrap">
+        <div class="card-wrap${cfg.frosted_glass ? ' pmc-frosted' : ''}">
           ${cfg.title ? `<div class="card-title">${cfg.title}</div>` : ''}
           <div class="grid">
             ${devices.map(dev =>
@@ -1090,6 +1235,22 @@ class PowerMonitorCard extends HTMLElement {
       const id = el.dataset.entity;
       if (id) el.addEventListener('click', () => this._moreInfo(id));
     });
+
+    // Apply frosted CSS custom properties to host
+    this._applyFrostedVars();
+  }
+
+  _applyFrostedVars() {
+    const cfg = this._config;
+    if (cfg && cfg.frosted_glass) {
+      const opacity = Math.min(0.9, Math.max(0.1, parseFloat(cfg.frosted_opacity) || 0.52));
+      const blur    = Math.min(40,  Math.max(4,   parseFloat(cfg.frosted_blur)    || 22));
+      this.style.setProperty('--pmc-fg-bg',  'rgba(8,14,30,' + opacity + ')');
+      this.style.setProperty('--pmc-fg-blur', blur + 'px');
+    } else {
+      this.style.removeProperty('--pmc-fg-bg');
+      this.style.removeProperty('--pmc-fg-blur');
+    }
   }
 }
 
